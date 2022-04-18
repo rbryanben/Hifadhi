@@ -84,7 +84,6 @@ def cache(file,fileQueryName):
     Asset Invalidation -> Checks if the memory allocated to cache is not full. If full finds a file remove
 """
 def assertInvalidation(fileSize):
-    print(fileSize)
     # Return reponse -> tell if any file was removed from cache
     return "File Cached"
 
