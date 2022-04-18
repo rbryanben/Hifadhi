@@ -1,3 +1,115 @@
+import os
+from unittest import result
 from django.test import TestCase
+from .storage import store, cache
+from .models import *
 
-# Create your tests here.
+
+"""
+    Storage Module Tests
+"""
+class testStorageModuleTests(TestCase):
+    def setUp(self) -> None:
+        #remove files 
+        try:
+            os.remove("./Storage/Local/banana.txt")
+            os.remove("./Storage/Local/banana2.txt")
+            os.remove("./Storage/Cache/sahara@banana.txt")
+        except FileNotFoundError:
+            pass
+
+        self.testfile = open("./Storage/Tests/banana.txt",'rb')
+        self.overrideTestFile = open("./Storage/Tests/banana_override.txt",'rb')
+
+    #
+    # Storage Tests
+    #
+
+    def testStoringFile(self):
+        result = store(self.testfile,'banana.txt')
+        
+        #check if got true
+        self.assertTrue(result[0])
+        #check if the query name is correct
+        self.assertEqual(result[1],f'{os.environ.get("INSTANCE_NAME")}@banana.txt')
+
+        #test if the file was stored 
+        savedFile = open('./Storage/Local/banana.txt')
+        self.testfile.seek(0,0)
+        self.assertEqual(savedFile.read(),self.testfile.read().decode("utf8"))
+
+        #Test database record was kept 
+        self.assertIsNotNone(storedFile.objects.get(filename="banana.txt"))
+    
+
+    def testStoringFileWithOverride(self):
+        result = store(self.testfile,'banana2.txt',override=True)
+
+        #check if got true
+        self.assertTrue(result[0])
+        #check if the query name is correct
+        self.assertEqual(result[1],f'{os.environ.get("INSTANCE_NAME")}@banana2.txt')
+
+        #test if the file was stored 
+        savedFile = open('./Storage/Local/banana2.txt')
+        self.testfile.seek(0,0)
+        self.assertEqual(savedFile.read(),self.testfile.read().decode("utf8"))
+
+        # Check database
+        self.assertIsNotNone(storedFile.objects.get(filename="banana2.txt"))
+
+    def testStoringFileWithConfictingName(self):
+        
+        #store the first file
+        self.testfile.seek(0,0)
+        store(self.testfile,'banana.txt')
+
+        result = store(self.testfile,'banana.txt')
+
+        #check if event failed
+        self.assertFalse(result[0])
+
+    def testStoringWithConfictingNameFileWithOverride(self):
+        result = store(self.overrideTestFile,'banana.txt')
+
+        #test if event was successful
+        self.assertTrue(result[0])
+
+        #test if the file was overridden
+        fileOverridden = open("./Storage/Local/banana.txt",'rb')
+        self.overrideTestFile.seek(0,0)
+        self.assertEqual(self.overrideTestFile.read(),fileOverridden.read())
+
+    def testRemoveFile(self):
+        self.testfile.close()
+        self.overrideTestFile.close()
+        try:
+            os.remove("./Storage/Local/banana.txt")
+            os.remove("./Storage/Local/banana2.txt")
+        except Exception as e:
+            pass
+
+    #
+    #  Cache Tests
+    #
+
+    def testCachingFile(self):
+        #cache the test file 
+        result = cache(self.testfile,"sahara@banana.txt")
+
+        #Test if the file was saved
+        self.testfile.seek(0,0) 
+        with open("./Storage/Cache/sahara@banana.txt","rb") as fileToTest:
+            self.assertEqual(fileToTest.read(),self.testfile.read())
+
+        #Test if the result was true
+        self.assertTrue(result[0])
+
+    def testCachingFileAlreadyCached(self):
+         #cache the test file 
+        result = cache(self.overrideTestFile,"sahara@banana.txt")
+
+        #Test if the file was saved
+        self.overrideTestFile.seek(0,0) 
+        with open("./Storage/Cache/sahara@banana.txt","rb") as fileToTest:
+            self.assertEqual(fileToTest.read(),self.overrideTestFile.read())
