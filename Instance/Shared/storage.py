@@ -20,7 +20,7 @@ instanceName = os.environ.get("INSTANCE_NAME")
 """
 def store(file,fileName,override=False):
     # Do not Override the file
-    if (not override):
+    if (override == False):
         # If the name is taken return error 
         if (filenameTaken(fileName)):
             return [False,"Filename Taken"]
@@ -32,11 +32,12 @@ def store(file,fileName,override=False):
             fileToWrite.write(file.read())
         return [True,f'{instanceName}@{fileName}']
 
-    # Override the file 
     if (filenameTaken(fileName)):
         # Create a new record
-        storedFile.objects.get(filename=fileName).delete()
+        prevFileRecord = storedFile.objects.get(filename=fileName)
+        prevFileRecord.delete()
 
+    
     # Create a record
     newFileRecord = storedFile(filename=fileName)
     newFileRecord.save()
@@ -72,11 +73,14 @@ def cache(file,fileQueryName):
     invalidationResult = assertInvalidation(file.tell())
     file.seek(0,0)
 
+    if invalidationResult[0] != True:
+        return [False,invalidationResult[1]]
+    
     #save the file 
     with open(f"{cacheStorage}/{fileQueryName}","wb") as fileToWrite:
         fileToWrite.write(file.read())
 
-    return [True,invalidationResult]
+    return [True,fileQueryName]
 
 
 
@@ -85,6 +89,6 @@ def cache(file,fileQueryName):
 """
 def assertInvalidation(fileSize):
     # Return reponse -> tell if any file was removed from cache
-    return "File Cached"
+    return [True,"Insufficent Storage"]
 
     

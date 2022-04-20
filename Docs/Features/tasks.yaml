@@ -1,0 +1,53 @@
+Components:
+  Instance:
+    Complexity: 80% 
+  Adapter:
+    Complexity: 20%
+
+Tasks:
+  Instance:
+    - Data Storage:
+        - Controler 
+        - API call
+        - Tests
+    - Data Retrival
+    - Instance Sharding
+    - Shard Caching
+    - Memory Caching
+    - Cache invalidation
+    - Accelerated Streaming 
+    - Name Conflicts
+    - Access Control 
+  Gossip Instance:
+    - Instance Registration
+    - Adapter Connection
+    - Get Instances
+  Adapter:
+    Setup:
+      - Setting.py Configuration
+      - Structure
+    Methods:
+      - getInstances
+      - uploadFile
+      - signFile
+      - ipv4Access
+      - deleteSignature
+      - deleteIpv4Access
+      - deleteFile 
+      - setHighAvailability
+      - setHighAvailabilityInMemory
+    Dependencies:
+      - Instance
+      - Gossip Instance
+
+    
+  Arrangement:
+    - Container Compatability:
+      Dependencies:
+        - Instance
+    - Enviroment Variable Mapping:
+      Dependencies:
+        - Instance
+
+Backlog:
+  - Check if there is enough memory to store a file

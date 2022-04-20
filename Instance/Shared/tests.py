@@ -70,7 +70,10 @@ class testStorageModuleTests(TestCase):
         self.assertFalse(result[0])
 
     def testStoringWithConfictingNameFileWithOverride(self):
-        result = store(self.overrideTestFile,'banana.txt')
+        self.testfile.seek(0,0)
+        store(self.testfile,'banana.txt')
+
+        result = store(self.overrideTestFile,'banana.txt',override=True)
 
         #test if event was successful
         self.assertTrue(result[0])
