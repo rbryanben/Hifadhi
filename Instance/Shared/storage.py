@@ -18,7 +18,7 @@ instanceName = os.environ.get("INSTANCE_NAME")
 		[true,queryString] → File was saved successfully
 		[false,error] → File was not saved.
 """
-def store(file,fileName,override=False,public=True):
+def store(file,fileName,override=False,public=True): 
     # Do not Override the file
     if (override == False):
         # If the name is taken return error 
@@ -53,12 +53,12 @@ def store(file,fileName,override=False,public=True):
 		[true,fileQueryName] → File was cached.
 		[false,error] → File was not cached.
 """
-def cache(file,fileQueryName):
+def cache(file,fileQueryName,public=True):
     #delete any previous records 
     cachedFile.objects.filter(fileQueryName=fileQueryName).delete()
 
     #create a new record 
-    newCachedFileRecord = cachedFile(fileQueryName=fileQueryName)
+    newCachedFileRecord = cachedFile(fileQueryName=fileQueryName,public=public)
     newCachedFileRecord.save()
 
     # Remove any previous files

@@ -22,3 +22,5 @@ def filenameTaken(fileName):
 class cachedFile(models.Model):
     fileQueryName =  models.CharField(max_length=512,null=False,primary_key=True)
     cached = models.DateTimeField(auto_now=True)
+    public = models.BooleanField(default=True)
+    

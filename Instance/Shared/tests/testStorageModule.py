@@ -1,8 +1,8 @@
+from fileinput import filename
 import os
-from unittest import result
 from django.test import TestCase
-from .storage import store, cache
-from .models import *
+from Shared.storage import store, cache
+from Shared.models import *
 
 
 
@@ -114,9 +114,13 @@ class testStorageModuleTests(TestCase):
         with open("./Storage/Cache/sahara@banana.txt","rb") as fileToTest:
             self.assertEqual(fileToTest.read(),self.overrideTestFile.read())
 
-    def tearDown(self) -> None:
-        #os.remove("./Storage/Cache/sahara@banana.txt")
-        #os.remove("./Storage/Local/banana2.txt")
-        #os.remove("./Storage/Local/banana3.txt")
-        return
+    def testCachingPrivateFile(self):
+        file = self.testfile
+        file.seek(0,0)
+
+        cache(file,"sahara@banana_pvt.txt",public=False)
+
+        self.assertFalse(cachedFile.objects.get(fileQueryName="sahara@banana_pvt.txt").public)
+        
+    
         
