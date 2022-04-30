@@ -7,7 +7,7 @@ from Shared.models import storedFile
 """
     Tests the /api/version/store url
 """
-class testStoreRoute(TestCase):
+class TestStoreRoute(TestCase):
 
     def setUp(self) -> None:
         self.testFile = open("./Storage/Tests/dog.jpg","rb")

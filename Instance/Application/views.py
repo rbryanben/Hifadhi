@@ -1,8 +1,11 @@
-from urllib.request import Request
-from django.http import HttpResponse
+from django.http import HttpResponse, StreamingHttpResponse
 from Shared.decorators import PostOnly
-from django.views.decorators.csrf import csrf_exempt
 from Shared.storage import store as storeFile, cache as cacheFile
+from Shared.models import storedFile
+from Shared.Util import queryParser
+from Shared.Util import shardQueryHelper
+from wsgiref.util import FileWrapper
+import os 
 
 
 """
@@ -11,7 +14,6 @@ from Shared.storage import store as storeFile, cache as cacheFile
 	Responses:
 		200 → The file was stored 
 """
-@csrf_exempt
 def store(request):
     # Block other methods 
     if request.method != "POST": 
@@ -44,7 +46,7 @@ def store(request):
 
     # Override is not defined or is not true
     result = storeFile(fileToStore,request.POST["filename"],public=publicAccess)
-    
+
     #Check if successful
     if (result[0] == True):
         return HttpResponse(result[1],status=200)
@@ -59,7 +61,6 @@ def store(request):
 		200 → File was cached
 		* 
 """
-@csrf_exempt
 def cache(request):
     #Get the file
     file = request.FILES.get("file")
@@ -84,3 +85,47 @@ def cache(request):
         return HttpResponse(result[1],status=200)
     else:
         return HttpResponse(result[1],status=500)
+
+"""
+    (GET) /api/version/download → 
+	download(queryString)
+	Responses:
+		200 → The file was stored 
+		* 
+"""
+def download(request,queryString):
+    # Get Signature
+    signature = request.GET.get("signature") if "signature" in request.GET else None
+
+    # Parse the queryString
+    instance, filename = queryParser.parse(queryString)
+
+    
+    #check if the instance is not this one
+    if instance != os.environ.get("INSTANCE_NAME"): return shardQueryHelper.retriveFromShard(instance,filename)
+
+    #check if the file exists
+    if not storedFile.objects.filter(filename=filename).exists(): 
+        return HttpResponse(f"Does not exist {filename} on instance {instance}",status=404)
+
+    #check if the file is public
+    if storedFile.objects.get(filename=filename).public:
+        file_path = f'./Storage/Local/{filename}'
+        chunk_size = 10000
+        filename = os.path.basename(file_path)
+
+        response = StreamingHttpResponse(
+            FileWrapper(open(file_path, 'rb'), chunk_size),
+            content_type="application/octet-stream"
+        )
+        response['Content-Length'] = os.path.getsize(file_path)    
+        response['Content-Disposition'] = "attachment; filename=%s" % filename
+        return response
+    
+    #denied
+    return HttpResponse(f"Access denied for file {filename} from instance {instance}",status=401)
+
+
+
+
+
