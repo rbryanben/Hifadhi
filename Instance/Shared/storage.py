@@ -18,14 +18,14 @@ instanceName = os.environ.get("INSTANCE_NAME")
 		[true,queryString] → File was saved successfully
 		[false,error] → File was not saved.
 """
-def store(file,fileName,override=False):
+def store(file,fileName,override=False,public=True):
     # Do not Override the file
     if (override == False):
         # If the name is taken return error 
         if (filenameTaken(fileName)):
             return [False,"Filename Taken"]
         # If name is not taken create a db record and store the new file
-        newfileRecord = storedFile(filename=fileName)
+        newfileRecord = storedFile(filename=fileName,public=public)
         newfileRecord.save()
 
         with open(f'{localStorage}/{fileName}','wb') as fileToWrite:
@@ -36,10 +36,9 @@ def store(file,fileName,override=False):
         # Create a new record
         prevFileRecord = storedFile.objects.get(filename=fileName)
         prevFileRecord.delete()
-
     
     # Create a record
-    newFileRecord = storedFile(filename=fileName)
+    newFileRecord = storedFile(filename=fileName,public=public)
     newFileRecord.save()
     
     # Write to the file

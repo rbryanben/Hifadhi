@@ -6,7 +6,7 @@ from django.db import models
 class storedFile(models.Model):
     filename = models.CharField(max_length=512,null=False,primary_key=True)
     stored = models.DateTimeField(auto_now=True)
-
+    public = models.BooleanField(default=False,null=False)
 
 def filenameTaken(fileName):
     try:

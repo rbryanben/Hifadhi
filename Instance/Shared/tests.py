@@ -5,6 +5,7 @@ from .storage import store, cache
 from .models import *
 
 
+
 """
     Storage Module Tests
 """
@@ -41,6 +42,11 @@ class testStorageModuleTests(TestCase):
         #Test database record was kept 
         self.assertIsNotNone(storedFile.objects.get(filename="banana.txt"))
     
+    def testStoringPrivateFile(self):
+        result = store(self.testfile,'banana3.txt',public=False)
+
+        # Assert the file is private
+        self.assertFalse(storedFile.objects.get(filename='banana3.txt').public)
 
     def testStoringFileWithOverride(self):
         result = store(self.testfile,'banana2.txt',override=True)
@@ -83,15 +89,6 @@ class testStorageModuleTests(TestCase):
         self.overrideTestFile.seek(0,0)
         self.assertEqual(self.overrideTestFile.read(),fileOverridden.read())
 
-    def testRemoveFile(self):
-        self.testfile.close()
-        self.overrideTestFile.close()
-        try:
-            os.remove("./Storage/Local/banana.txt")
-            os.remove("./Storage/Local/banana2.txt")
-        except Exception as e:
-            pass
-
     #
     #  Cache Tests
     #
@@ -116,3 +113,10 @@ class testStorageModuleTests(TestCase):
         self.overrideTestFile.seek(0,0) 
         with open("./Storage/Cache/sahara@banana.txt","rb") as fileToTest:
             self.assertEqual(fileToTest.read(),self.overrideTestFile.read())
+
+    def tearDown(self) -> None:
+        #os.remove("./Storage/Cache/sahara@banana.txt")
+        #os.remove("./Storage/Local/banana2.txt")
+        #os.remove("./Storage/Local/banana3.txt")
+        return
+        
