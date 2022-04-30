@@ -19,13 +19,19 @@ instanceName = os.environ.get("INSTANCE_NAME")
 		[false,error] → File was not saved.
 """
 def store(file,fileName,override=False,public=True): 
+    # Get the file size
+    file.read()
+    fileSize = file.tell()
+    file.seek(0,0)
+
+
     # Do not Override the file
     if (override == False):
         # If the name is taken return error 
         if (filenameTaken(fileName)):
             return [False,"Filename Taken"]
         # If name is not taken create a db record and store the new file
-        newfileRecord = storedFile(filename=fileName,public=public)
+        newfileRecord = storedFile(filename=fileName,public=public,size=fileSize)
         newfileRecord.save()
 
         with open(f'{localStorage}/{fileName}','wb') as fileToWrite:
@@ -38,7 +44,7 @@ def store(file,fileName,override=False,public=True):
         prevFileRecord.delete()
     
     # Create a record
-    newFileRecord = storedFile(filename=fileName,public=public)
+    newFileRecord = storedFile(filename=fileName,public=public,size=fileSize)
     newFileRecord.save()
     
     # Write to the file
@@ -54,18 +60,17 @@ def store(file,fileName,override=False,public=True):
 		[false,error] → File was not cached.
 """
 def cache(file,fileQueryName,public=True):
+    # Get the file size
+    file.read()
+    fileSize = file.tell()
+    file.seek(0,0)
+
     #delete any previous records 
     cachedFile.objects.filter(fileQueryName=fileQueryName).delete()
 
     #create a new record 
-    newCachedFileRecord = cachedFile(fileQueryName=fileQueryName,public=public)
+    newCachedFileRecord = cachedFile(fileQueryName=fileQueryName,public=public,size=fileSize)
     newCachedFileRecord.save()
-
-    # Remove any previous files
-    try:
-        os.remove(f"{cacheStorage}/{fileQueryName}")
-    except FileNotFoundError:
-        pass
 
     #check if the memory is full 
     file.read()

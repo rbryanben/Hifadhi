@@ -22,6 +22,7 @@ def store(request):
     # Get the file to store
     fileToStore = request.FILES.get("file")
 
+   
     # Check if everything if requered parameters are true 
     if ("filename" not in request.POST or fileToStore == None): 
         return HttpResponse("Missing Parameters",status=400)
