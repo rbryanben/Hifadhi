@@ -17,7 +17,6 @@ class TestDownloadClass(TestCase):
         #download the file 
         queryString = result.content.decode("utf8") 
         result = self.client.get(f"/api/v1/download/{queryString}?signature=1XJ32DO7OP23DNDJ32")
-        
         self.assertEqual(result.status_code,200)
 
         # test file streaming

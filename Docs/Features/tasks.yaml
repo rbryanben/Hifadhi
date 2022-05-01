@@ -12,6 +12,7 @@ Tasks:
         - Tests
     - Data Retrival
     - Instance Sharding
+    - Shard Retrival
     - Shard Caching
     - Memory Caching
     - Cache invalidation

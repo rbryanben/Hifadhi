@@ -131,31 +131,3 @@ def download(request,queryString):
     #denied
     return HttpResponse(f"Access denied for file {filename} from instance {instance}",status=401)
 
-
-
-"""
-    For demo
-"""
-def getFilesList(request):
-    files = storedFile.objects.all()
-    data = [file.toDictionary() for file in files]
-    return HttpResponse(json.dumps(data),status=200)
-
-
-def getStorageDetail(request):
-    hdd = psutil.disk_usage('/')
-    
-    response = {
-        "total" : hdd.total,
-        "used" : hdd.used,
-        "free" : hdd.free,
-        "percent" : hdd.percent,
-        "summary" : {
-            "total": size(hdd.total),
-            "used": size(hdd.used),
-            "free": size(hdd.free),
-        },
-        "instance" : os.environ.get("INSTANCE_NAME")
-    }
-
-    return HttpResponse(json.dumps(response),status=200)
