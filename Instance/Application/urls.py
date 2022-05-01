@@ -6,4 +6,5 @@ urlpatterns = [
     path('v1/cache',cache,name="Cache File API Call"),
     path('v1/download/<str:queryString>',download,name="Download File API Call"),
     path('v1/stream/<str:queryString>',download,name="Stream File API Call"),
+    path('v1/register',register,name="Register API Call"),
 ]

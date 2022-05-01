@@ -1,3 +1,4 @@
+from datetime import datetime
 from django.db import models
 from hurry.filesize import size
 import os 
@@ -28,6 +29,55 @@ def filenameTaken(fileName):
     if storedFile.objects.filter(filename=fileName).exists():
         return True
     return False
+
+
+"""
+    Instance registered 
+
+    Keeps the following attributes ipv4 total_memory used_memory stored_files_size cached_files_size instance_name stored_files_count cached_files_count uptime
+"""
+class registeredInstance(models.Model):
+    ipv4 = models.CharField(max_length=15,null=False)
+    total_memory = models.BigIntegerField(default=0)
+    used_memory = models.BigIntegerField(default=0)
+    stored_files_size = models.BigIntegerField(default=0)
+    cached_files_size = models.BigIntegerField(default=0)
+    instance_name = models.CharField(max_length=512,null=False,primary_key=True)
+    stored_files_count = models.IntegerField(default=0)
+    cached_files_count = models.IntegerField(default=0)
+    uptime = models.BigIntegerField(default=0)
+    last_health_check = models.DateTimeField(auto_now=True)
+    healthy  = models.BooleanField(default=True)
+
+
+    def update(self,ipv4,total_memory,used_memory,stored_files_size,
+        cached_files_size,stored_files_count,cached_files_count,
+        uptime):
+        self.ipv4 = ipv4
+        self.total_memory = total_memory
+        self.used_memory = used_memory
+        self.stored_files_size = stored_files_size
+        self.cached_files_size = cached_files_size
+        self.stored_files_count = stored_files_count
+        self.cached_files_count = cached_files_count
+        self.uptime = uptime
+        self.last_health_check = datetime.now()
+        self.healthy = True
+        self.save() 
+    
+    def toDictionary(self):
+        return {
+            "ipv4" : self.ipv4,
+            "total_memory" : size(self.total_memory),
+            "used_memory" : size(self.used_memory),
+            "stored_files_size" : size(self.stored_files_size),
+            "cached_files_size" : size(self.cached_files_size),
+            "instance_name" : self.instance_name,
+            "stored_files_count" : self.stored_files_count,
+            "cached_files_count" : self.cached_files_count,
+            "uptime" : size(self.uptime),
+            "healthy" : self.healthy
+        }
         
 
 """

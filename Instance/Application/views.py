@@ -1,14 +1,16 @@
 import imp
+import re
 from django.http import HttpResponse, StreamingHttpResponse
 from Shared.decorators import PostOnly
 from Shared.storage import store as storeFile, cache as cacheFile
-from Shared.models import storedFile
+from Shared.models import storedFile, registeredInstance
 from Shared.Util import queryParser
 from Shared.Util import shardQueryHelper
 from wsgiref.util import FileWrapper
 import psutil
 from django.core import serializers
 from hurry.filesize import size
+from Shared.Util.bucket import get_client_ip
 import json
 import os 
 
@@ -131,3 +133,59 @@ def download(request,queryString):
     #denied
     return HttpResponse(f"Access denied for file {filename} from instance {instance}",status=401)
 
+"""
+    Shard Instance Registration - Makes this instance a gossip instance
+
+    (POST) /api/version/register → 
+	headers(SHARD_KEY)
+	register(params)
+	Responses:
+		200 → instance was registered 
+		* 
+"""
+def register(request):
+    data = json.loads(request.body)
+
+    #check if the SHARD_KEY is defined in the enviroment variables
+    if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
+    
+    #check shard key is specified
+    if "SHARD-KEY" not in request.headers: return HttpResponse("Missing Header SHARD-KEY ",status=400)
+
+    
+    #check if the SHARD_KEY is correct
+    if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
+
+
+    #check if the instance is already registered
+    if registeredInstance.objects.filter(instance_name=data["instance_name"]).exists():
+        instance = registeredInstance.objects.get(instance_name=data["instance_name"])
+        instance.update(
+            get_client_ip(request),
+            data["total_memory"],
+            data["used_memory"],
+            data["stored_files_size"],
+            data["cached_files_size"],
+            data["stored_files_count"],
+            data["cached_files_count"],
+            data["uptime"])
+    
+    #register a new instance
+    else:
+        instance = registeredInstance(
+            ipv4=get_client_ip(request),
+            total_memory=data["total_memory"],
+            used_memory=data["used_memory"],
+            stored_files_size=data["stored_files_size"],
+            cached_files_size=data["cached_files_size"],
+            instance_name=data["instance_name"],
+            stored_files_count=data["stored_files_count"],
+            cached_files_count=data["cached_files_count"],
+            uptime=data["uptime"]
+        )
+        instance.save()
+
+    
+    # return the list of registered instances
+    registeredInstances = [instance.toDictionary() for instance in registeredInstance.objects.all()]
+    return HttpResponse(json.dumps(registeredInstances),status=200)
