@@ -1,6 +1,5 @@
 April_30_22:
   - Tasks:
-    - Add access control to the cache view
     - Data Retrival:
       Dependencies:
         - Access Control

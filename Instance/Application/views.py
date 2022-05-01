@@ -1,3 +1,4 @@
+import imp
 from django.http import HttpResponse, StreamingHttpResponse
 from Shared.decorators import PostOnly
 from Shared.storage import store as storeFile, cache as cacheFile
@@ -5,6 +6,10 @@ from Shared.models import storedFile
 from Shared.Util import queryParser
 from Shared.Util import shardQueryHelper
 from wsgiref.util import FileWrapper
+import psutil
+from django.core import serializers
+from hurry.filesize import size
+import json
 import os 
 
 
@@ -128,5 +133,29 @@ def download(request,queryString):
 
 
 
+"""
+    For demo
+"""
+def getFilesList(request):
+    files = storedFile.objects.all()
+    data = [file.toDictionary() for file in files]
+    return HttpResponse(json.dumps(data),status=200)
 
 
+def getStorageDetail(request):
+    hdd = psutil.disk_usage('/')
+    
+    response = {
+        "total" : hdd.total,
+        "used" : hdd.used,
+        "free" : hdd.free,
+        "percent" : hdd.percent,
+        "summary" : {
+            "total": size(hdd.total),
+            "used": size(hdd.used),
+            "free": size(hdd.free),
+        },
+        "instance" : os.environ.get("INSTANCE_NAME")
+    }
+
+    return HttpResponse(json.dumps(response),status=200)
