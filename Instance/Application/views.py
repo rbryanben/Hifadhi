@@ -196,8 +196,6 @@ def stream(request,queryString):
 		* 
 """
 def register(request):
-    data = json.loads(request.body)
-
     #check if the SHARD_KEY is defined in the enviroment variables
     if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
     
@@ -208,6 +206,7 @@ def register(request):
     #check if the SHARD_KEY is correct
     if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
 
+    data = json.loads(request.body)
 
     #check if the instance is already registered
     if registeredInstance.objects.filter(instance_name=data["instance_name"]).exists():
