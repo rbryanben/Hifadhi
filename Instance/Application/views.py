@@ -1,4 +1,5 @@
 import imp
+import mimetypes
 import re
 from django.http import HttpResponse, StreamingHttpResponse
 from Shared.decorators import PostOnly
@@ -7,10 +8,8 @@ from Shared.models import storedFile, registeredInstance
 from Shared.Util import queryParser
 from Shared.Util import shardQueryHelper
 from wsgiref.util import FileWrapper
-import psutil
-from django.core import serializers
 from hurry.filesize import size
-from Shared.Util.bucket import get_client_ip
+from Shared.Util.bucket import get_client_ip, range_re, RangeFileWrapper
 import json
 import os 
 
@@ -119,7 +118,7 @@ def download(request,queryString):
     #check if the file is public
     if storedFile.objects.get(filename=filename).public:
         file_path = f'./Storage/Local/{filename}'
-        chunk_size = 10000
+        chunk_size = 15 * (1024 * 1024) #15mb
         filename = os.path.basename(file_path)
 
         response = StreamingHttpResponse(
@@ -132,6 +131,59 @@ def download(request,queryString):
     
     #denied
     return HttpResponse(f"Access denied for file {filename} from instance {instance}",status=401)
+
+
+
+"""
+    GET) /api/versions/stream → Streams the file as chunks (Perfect for video streaming)
+	stream(queryString) 
+	Responses:
+		200 → File was cached
+		* 
+"""
+def stream(request,queryString):
+     # Get Signature
+    signature = request.GET.get("signature") if "signature" in request.GET else None
+
+    # Parse the queryString
+    instance, filename = queryParser.parse(queryString)
+
+    
+    #check if the instance is not this one
+    if instance != os.environ.get("INSTANCE_NAME"): return shardQueryHelper.retriveFromShard(instance,filename)
+
+    #check if the file exists
+    if not storedFile.objects.filter(filename=filename).exists(): 
+        return HttpResponse(f"Does not exist {filename} on instance {instance}",status=404)
+
+    #check if the file is public
+    if storedFile.objects.get(filename=filename).public:
+        path = f'./Storage/Local/{filename}'
+        range_header = request.META.get('HTTP_RANGE', '').strip()
+        range_match = range_re.match(range_header)
+        size = os.path.getsize(path)
+        content_type, encoding = mimetypes.guess_type(path)
+        content_type = content_type or 'application/octet-stream'
+        if range_match:
+            first_byte, last_byte = range_match.groups()
+            first_byte = int(first_byte) if first_byte else 0
+            last_byte = int(last_byte) if last_byte else size - 1
+            if last_byte >= size:
+                last_byte = size - 1
+            length = last_byte - first_byte + 1
+            resp = StreamingHttpResponse(RangeFileWrapper(open(path, 'rb'), offset=first_byte, length=length), status=206, content_type=content_type)
+            resp['Content-Length'] = str(length)
+            resp['Content-Range'] = 'bytes %s-%s/%s' % (first_byte, last_byte, size)
+        else:
+            resp = StreamingHttpResponse(FileWrapper(open(path, 'rb')), content_type=content_type)
+            resp['Content-Length'] = str(size)
+        resp['Accept-Ranges'] = 'bytes'
+        return resp
+    
+    #file is private
+    return HttpResponse(f"Access denied for file {filename} from instance {instance}",status=401)
+
+
 
 """
     Shard Instance Registration - Makes this instance a gossip instance
