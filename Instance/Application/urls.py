@@ -2,6 +2,7 @@ from django.urls import path
 from .views import *
 
 urlpatterns = [
+    path('v1/health',health,name="Get the health of an instance"),
     path('v1/store',store,name="Store File API Call"),
     path('v1/cache',cache,name="Cache File API Call"),
     path('v1/download/<str:queryString>',download,name="Download File API Call"),

@@ -15,8 +15,17 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+import time
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/',include("Application.urls")), #API Urls
 ]
+
+
+"""
+    Startup Code
+"""
+
+#startup time 
+startupTime = time.time() 

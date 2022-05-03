@@ -10,8 +10,10 @@ from Shared.Util import shardQueryHelper
 from wsgiref.util import FileWrapper
 from hurry.filesize import size
 from Shared.Util.bucket import get_client_ip, range_re, RangeFileWrapper
+import Main.urls as startUp
 import json
 import os 
+import time
 
 
 """
@@ -266,3 +268,16 @@ def getRegisteredInstances(request):
         json.dumps([instance.toDictionary() for instance in registeredInstance.objects.all()]),
         status=200
     )
+
+""""
+    (GET) /api/version/health -> returns the health of an instance
+
+"""
+def health(request):
+    response = {
+        "status" : "healthy",
+        "uptime" : time.time() - startUp.startupTime,
+        "instance" : os.environ.get("INSTANCE_NAME") if "INSTANCE_NAME" in os.environ else "UNNAMED"
+    }
+
+    return HttpResponse(json.dumps(response))
