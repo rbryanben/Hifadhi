@@ -240,3 +240,29 @@ def register(request):
     # return the list of registered instances
     registeredInstances = [instance.toDictionary() for instance in registeredInstance.objects.all()]
     return HttpResponse(json.dumps(registeredInstances),status=200)
+
+"""
+    (GET) /api/version/get_registered_instances → 
+	Headers: SHARD-KEY
+	Responses:
+		200 → List of registered instances 
+		*
+"""
+def getRegisteredInstances(request):
+
+    #check if the SHARD_KEY is defined in the enviroment variables
+    if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
+    
+    #check shard key is specified
+    if "SHARD-KEY" not in request.headers: return HttpResponse("Missing Header SHARD-KEY ",status=400)
+
+    
+    #check if the SHARD_KEY is correct
+    if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
+
+
+    #return all instances
+    return HttpResponse(
+        json.dumps([instance.toDictionary() for instance in registeredInstance.objects.all()]),
+        status=200
+    )
