@@ -4,13 +4,15 @@ import re
 from django.http import HttpResponse, StreamingHttpResponse
 from Shared.decorators import PostOnly
 from Shared.storage import store as storeFile, cache as cacheFile
-from Shared.models import storedFile, registeredInstance
+from Shared.models import storedFile, registeredInstance, cachedFile
+from django.db.models import Sum
 from Shared.Util import queryParser
 from Shared.Util import shardQueryHelper
 from wsgiref.util import FileWrapper
 from hurry.filesize import size
 from Shared.Util.bucket import get_client_ip, range_re, RangeFileWrapper
 import Main.urls as startUp
+import psutil
 import json
 import os 
 import time
@@ -262,10 +264,25 @@ def registeredInstances(request):
     #check if the SHARD_KEY is correct
     if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
 
+    instances = [instance.toDictionary() for instance in registeredInstance.objects.all()]
+    
+    #Add this instance
+    hdd = psutil.disk_usage('/')
+    instances.append({
+        "ipv4":request.get_host(),
+        "total_memory": hdd.total / (2**30),
+        "used_memory": hdd.used / (2**30),
+        "stored_files_size": storedFile.objects.all().aggregate(Sum('size')).get("size_sum") if storedFile.objects.all().aggregate(Sum('size')).get("size_sum") != None  else 0 / (2**30),
+        "cached_files_size": cachedFile.objects.all().aggregate(Sum('size')).get("size_sum") if cachedFile.objects.all().aggregate(Sum('size')).get("size_sum") != None  else 0 / (2**30),
+        "instance_name": os.environ.get("INSTANCE_NAME") if "INSTANCE_NAME" in os.environ else "UNNAMED",
+        "stored_files_count": storedFile.objects.all().count(),
+        "cached_files_count": cachedFile.objects.all().count(),
+        "uptime": time.time() - startUp.startupTime
+    })
 
     #return all instances
     return HttpResponse(
-        json.dumps([instance.toDictionary() for instance in registeredInstance.objects.all()]),
+        json.dumps(instances),
         status=200
     )
 
