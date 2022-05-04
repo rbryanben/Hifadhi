@@ -15,6 +15,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+import os
+from Shared.Util.bucket import registerToInstance
 import time
 
 urlpatterns = [
@@ -27,5 +29,14 @@ urlpatterns = [
     Startup Code
 """
 
-#startup time 
+#Variables
 startupTime = time.time() 
+knownInstances = []
+registeredOnGossip = []
+
+
+#register on startup
+if "GOSSIP_INSTANCE" in os.environ:
+    gossip_instance_ip = os.environ.get("GOSSIP_INSTANCE")
+    registerToInstance(gossip_instance_ip)
+

@@ -250,7 +250,7 @@ def register(request):
 		200 → List of registered instances 
 		*
 """
-def getRegisteredInstances(request):
+def registeredInstances(request):
 
     #check if the SHARD_KEY is defined in the enviroment variables
     if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
@@ -277,7 +277,8 @@ def health(request):
     response = {
         "status" : "healthy",
         "uptime" : time.time() - startUp.startupTime,
-        "instance" : os.environ.get("INSTANCE_NAME") if "INSTANCE_NAME" in os.environ else "UNNAMED"
+        "instance" : os.environ.get("INSTANCE_NAME") if "INSTANCE_NAME" in os.environ else "UNNAMED",
+        "known_instances" : startUp.knownInstances
     }
 
     return HttpResponse(json.dumps(response))

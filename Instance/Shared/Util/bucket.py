@@ -1,5 +1,13 @@
 import os 
 import re
+import psutil
+import time
+
+from requests import request
+import requests
+import Main.urls as startUp
+from django.db.models import Sum
+from Shared.models import storedFile, cachedFile
 range_re = re.compile(r'bytes\s*=\s*(\d+)\s*-\s*(\d*)', re.I)
 
 """
@@ -12,6 +20,46 @@ def get_client_ip(request):
     else:
         ip = request.META.get('REMOTE_ADDR')
     return ip
+
+
+"""
+    Register to an instance method
+"""
+def registerToInstance(instance_ip):
+    #check if shard key is defined
+    if "SHARD_KEY" not in os.environ: 
+        startUp.registeredOnGossip = [False,"SHARD_KEY Not Defined"]
+        return
+
+    hdd = psutil.disk_usage('/')
+    info = {
+        "total_memory": hdd.total / (2**30),
+        "used_memory": hdd.used / (2**30),
+        "stored_files_size": storedFile.objects.all().aggregate(Sum('size')).get("size_sum") if storedFile.objects.all().aggregate(Sum('size')).get("size_sum") != None  else 0 / (2**30),
+        "cached_files_size": cachedFile.objects.all().aggregate(Sum('size')).get("size_sum") if cachedFile.objects.all().aggregate(Sum('size')).get("size_sum") != None  else 0 / (2**30),
+        "instance_name": os.environ.get("INSTANCE_NAME") if "INSTANCE_NAME" in os.environ else "UNNAMED",
+        "stored_files_count": storedFile.objects.all().count(),
+        "cached_files_count": cachedFile.objects.all().count(),
+        "uptime": time.time() - startUp.startupTime
+    }
+
+    #try on http
+    try:
+        result = requests.post(f"http://{instance_ip}/api/v1/register",json=info,headers={"SHARD-KEY":os.environ.get("SHARD_KEY")})
+        startUp.registeredOnGossip [True,f"http://{instance_ip}"]
+        return
+    except Exception as e:
+        startUp.registeredOnGossip = [False,f"Failed To Connect {e}"]
+
+    #try on https 
+    try:
+        result = requests.post(f"https://{instance_ip}/api/v1/register",json=info,headers={"SHARD-KEY":os.environ.get("SHARD_KEY")})
+        startUp.registeredOnGossip [True,f"https://{instance_ip}"]
+        return
+    except Exception as e:
+        startUp.registeredOnGossip = [False,f"Failed To Connect {e}"]
+
+    print("Failed To Connect To Gossip Instance -> Exception: " + startUp.registeredOnGossip[1] + "\n\n")
 
 """
     Streaming Class 
