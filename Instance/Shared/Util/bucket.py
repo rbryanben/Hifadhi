@@ -45,15 +45,16 @@ def registerToInstance(instance_ip):
 
     #try on http
     try:
-        result = requests.post(f"http://{instance_ip}/api/v1/register",json=info,headers={"SHARD-KEY":os.environ.get("SHARD_KEY")})
-        startUp.registeredOnGossip [True,f"http://{instance_ip}"]
+        requests.post(f"http://{instance_ip}/api/v1/register",json=info,headers={"SHARD-KEY":os.environ.get("SHARD_KEY")})
+        startUp.registeredOnGossip = [True,f"http://{instance_ip}"]
         return
     except Exception as e:
+        print(f"Reached Exception: {e}")
         startUp.registeredOnGossip = [False,f"Failed To Connect {e}"]
 
     #try on https 
     try:
-        result = requests.post(f"https://{instance_ip}/api/v1/register",json=info,headers={"SHARD-KEY":os.environ.get("SHARD_KEY")})
+        requests.post(f"https://{instance_ip}/api/v1/register",json=info,headers={"SHARD-KEY":os.environ.get("SHARD_KEY")})
         startUp.registeredOnGossip [True,f"https://{instance_ip}"]
         return
     except Exception as e:
