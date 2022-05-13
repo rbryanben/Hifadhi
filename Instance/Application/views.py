@@ -2,6 +2,7 @@ import imp
 import mimetypes
 import re
 from django.http import HttpResponse, StreamingHttpResponse
+from urllib3 import Retry
 from Shared.decorators import PostOnly
 from Shared.storage import store as storeFile, cache as cacheFile
 from Shared.models import storedFile, registeredInstance, cachedFile
@@ -299,3 +300,33 @@ def health(request):
     }
 
     return HttpResponse(json.dumps(response))
+
+"""
+    (POST) /api/version/shard_instance →  Queries the IPv4 of an instance from the gossip instance
+	headers(SHARD_KEY)
+	shard_instance(instance_name)
+	Responses:
+		200 → Success
+		* 
+"""
+def shardInstance(request):
+    #check if the SHARD_KEY is defined in the enviroment variables
+    if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
+    
+    #check shard key is specified
+    if "SHARD-KEY" not in request.headers: return HttpResponse("Missing Header SHARD-KEY ",status=400)
+
+    #check if instance_name is defined 
+    if not "instance_name" in request.POST: return HttpResponse("Missing instance_name parameter",status=400)
+
+    #check if the SHARD_KEY is correct
+    if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
+
+    #check if the instance exists 
+    instance_name = request.POST.get("instance_name")
+    if not registeredInstance.objects.filter(instance_name=instance_name).exists():
+        return HttpResponse(f"Instance {instance_name} not found",status=404)
+    
+    #return the ipv4 of the instance
+    instance = registeredInstance.objects.get(instance_name=instance_name)
+    return HttpResponse(instance.ipv4,status=200)
