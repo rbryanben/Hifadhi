@@ -48,7 +48,8 @@ def registerToInstance(instance_ip):
     try:
         result = requests.post(f"http://{instance_ip}/api/v1/register",json=info,headers={"SHARD-KEY":os.environ.get("SHARD_KEY")})
         startUp.registeredOnGossip = [True,f"http://{instance_ip}"]
-        startUp.knownInstances =json.loads(result.text)
+        startUp.knownInstances = json.loads(result.text)
+
         # Update to the terminal 
         print(f"Registered on gossip instance http://{instance_ip}\n\n")
         return

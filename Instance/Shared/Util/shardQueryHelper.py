@@ -12,5 +12,7 @@ def retriveFromShard(request,instance,filename):
     """
     #try get from list returned on registration
     print(Startup.knownInstances)
+    if instance in Startup.knownInstances:
+        print(Startup.knownInstances.get(instance))
 
     return HttpResponse(f"Should get {filename} from {instance}",status=501)
