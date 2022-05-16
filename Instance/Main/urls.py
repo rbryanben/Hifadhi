@@ -31,7 +31,7 @@ urlpatterns = [
 
 #Variables
 startupTime = time.time() 
-knownInstances = []
+knownInstances = None
 registeredOnGossip = []
 
 

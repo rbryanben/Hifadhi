@@ -66,17 +66,19 @@ class registeredInstance(models.Model):
         self.save() 
     
     def toDictionary(self):
-        return {
-            "ipv4" : self.ipv4,
-            "total_memory" : size(self.total_memory),
-            "used_memory" : size(self.used_memory),
-            "stored_files_size" : size(self.stored_files_size),
-            "cached_files_size" : size(self.cached_files_size),
-            "instance_name" : self.instance_name,
-            "stored_files_count" : self.stored_files_count,
-            "cached_files_count" : self.cached_files_count,
-            "uptime" : size(self.uptime),
-            "healthy" : self.healthy
+        return { 
+            self.instance_name: {
+                "ipv4" : self.ipv4,
+                "total_memory" : size(self.total_memory),
+                "used_memory" : size(self.used_memory),
+                "stored_files_size" : size(self.stored_files_size),
+                "cached_files_size" : size(self.cached_files_size),
+                "instance_name" : self.instance_name,
+                "stored_files_count" : self.stored_files_count,
+                "cached_files_count" : self.cached_files_count,
+                "uptime" : size(self.uptime),
+                "healthy" : self.healthy
+            }
         }
         
 

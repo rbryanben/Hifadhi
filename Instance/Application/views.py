@@ -114,7 +114,7 @@ def download(request,queryString):
 
     
     #check if the instance is not this one
-    if instance != os.environ.get("INSTANCE_NAME"): return shardQueryHelper.retriveFromShard(instance,filename)
+    if instance != os.environ.get("INSTANCE_NAME"): return shardQueryHelper.retriveFromShard(request,instance,filename)
 
     #check if the file exists
     if not storedFile.objects.filter(filename=filename).exists(): 
@@ -155,7 +155,7 @@ def stream(request,queryString):
 
     
     #check if the instance is not this one
-    if instance != os.environ.get("INSTANCE_NAME"): return shardQueryHelper.retriveFromShard(instance,filename)
+    if instance != os.environ.get("INSTANCE_NAME"): return shardQueryHelper.retriveFromShard(request,instance,filename)
 
     #check if the file exists
     if not storedFile.objects.filter(filename=filename).exists(): 
@@ -241,9 +241,38 @@ def register(request):
         instance.save()
 
     
-    # return the list of registered instances
-    registeredInstances = [instance.toDictionary() for instance in registeredInstance.objects.all()]
-    return HttpResponse(json.dumps(registeredInstances),status=200)
+   #create dict of instances
+    instances = {}
+    for instance in registeredInstance.objects.all():
+        instances.update(instance.toDictionary())
+    
+
+    
+    #Add this instance
+    hdd = psutil.disk_usage('/')
+    instances.update(
+        {
+          os.environ.get("INSTANCE_NAME") if "INSTANCE_NAME" in os.environ else "UNNAMED":   {
+            "ipv4":request.get_host(),
+            "total_memory": hdd.total / (2**30),
+            "used_memory": hdd.used / (2**30),
+            "stored_files_size": storedFile.objects.all().aggregate(Sum('size')).get("size_sum") if storedFile.objects.all().aggregate(Sum('size')).get("size_sum") != None  else 0,
+            "cached_files_size": cachedFile.objects.all().aggregate(Sum('size')).get("size_sum") if cachedFile.objects.all().aggregate(Sum('size')).get("size_sum") != None  else 0,
+            "instance_name": os.environ.get("INSTANCE_NAME") if "INSTANCE_NAME" in os.environ else "UNNAMED",
+            "stored_files_count": storedFile.objects.all().count(),
+            "cached_files_count": cachedFile.objects.all().count(),
+            "uptime": time.time() - startUp.startupTime
+            }
+        }
+    )
+
+
+    #return all instances
+    return HttpResponse(
+        json.dumps(instances),
+        status=200
+    )
+
 
 """
     (GET) /api/version/get_registered_instances → 
@@ -264,21 +293,31 @@ def registeredInstances(request):
     #check if the SHARD_KEY is correct
     if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
 
-    instances = [instance.toDictionary() for instance in registeredInstance.objects.all()]
+    #create dict of instances
+    instances = {}
+    for instance in registeredInstance.objects.all():
+        instances.update(instance.toDictionary())
+    
+
     
     #Add this instance
     hdd = psutil.disk_usage('/')
-    instances.append({
-        "ipv4":request.get_host(),
-        "total_memory": hdd.total / (2**30),
-        "used_memory": hdd.used / (2**30),
-        "stored_files_size": storedFile.objects.all().aggregate(Sum('size')).get("size_sum") if storedFile.objects.all().aggregate(Sum('size')).get("size_sum") != None  else 0 / (2**30),
-        "cached_files_size": cachedFile.objects.all().aggregate(Sum('size')).get("size_sum") if cachedFile.objects.all().aggregate(Sum('size')).get("size_sum") != None  else 0 / (2**30),
-        "instance_name": os.environ.get("INSTANCE_NAME") if "INSTANCE_NAME" in os.environ else "UNNAMED",
-        "stored_files_count": storedFile.objects.all().count(),
-        "cached_files_count": cachedFile.objects.all().count(),
-        "uptime": time.time() - startUp.startupTime
-    })
+    instances.update(
+        {
+          os.environ.get("INSTANCE_NAME") if "INSTANCE_NAME" in os.environ else "UNNAMED":   {
+            "ipv4":request.get_host(),
+            "total_memory": hdd.total / (2**30),
+            "used_memory": hdd.used / (2**30),
+            "stored_files_size": storedFile.objects.all().aggregate(Sum('size')).get("size_sum") if storedFile.objects.all().aggregate(Sum('size')).get("size_sum") != None  else 0,
+            "cached_files_size": cachedFile.objects.all().aggregate(Sum('size')).get("size_sum") if cachedFile.objects.all().aggregate(Sum('size')).get("size_sum") != None  else 0,
+            "instance_name": os.environ.get("INSTANCE_NAME") if "INSTANCE_NAME" in os.environ else "UNNAMED",
+            "stored_files_count": storedFile.objects.all().count(),
+            "cached_files_count": cachedFile.objects.all().count(),
+            "uptime": time.time() - startUp.startupTime
+            }
+        }
+    )
+
 
     #return all instances
     return HttpResponse(
@@ -356,7 +395,7 @@ def shardDownload(request,queryString):
     instance, filename = queryParser.parse(queryString)
 
     #check if the instance is not this one
-    if instance != os.environ.get("INSTANCE_NAME"): return shardQueryHelper.retriveFromShard(instance,filename)
+    if instance != os.environ.get("INSTANCE_NAME"): return shardQueryHelper.retriveFromShard(request,instance,filename)
 
     #check if the file exists
     if not storedFile.objects.filter(filename=filename).exists(): 
