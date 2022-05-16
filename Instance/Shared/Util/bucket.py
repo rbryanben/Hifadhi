@@ -49,6 +49,8 @@ def registerToInstance(instance_ip):
         result = requests.post(f"http://{instance_ip}/api/v1/register",json=info,headers={"SHARD-KEY":os.environ.get("SHARD_KEY")})
         startUp.registeredOnGossip = [True,f"http://{instance_ip}"]
         startUp.knownInstances =json.loads(result.text)
+        # Update to the terminal 
+        print(f"Registered on gossip instance http://{instance_ip}\n\n")
         return
     except Exception as e:
         print(f"Reached Exception: {e}")
@@ -58,7 +60,9 @@ def registerToInstance(instance_ip):
     try:
         result = requests.post(f"https://{instance_ip}/api/v1/register",json=info,headers={"SHARD-KEY":os.environ.get("SHARD_KEY")})
         startUp.knownInstances =json.loads(result.text)
-        startUp.registeredOnGossip [True,f"https://{instance_ip}"]
+        startUp.registeredOnGossip = [True,f"https://{instance_ip}"]
+         # Update to the terminal 
+        print(f"Registered on gossip instance https://{instance_ip}\n\n")
         return
     except Exception as e:
         startUp.registeredOnGossip = [False,f"Failed To Connect {e}"]
