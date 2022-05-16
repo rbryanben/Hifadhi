@@ -189,7 +189,6 @@ def stream(request,queryString):
     return HttpResponse(f"Access denied for file {filename} from instance {instance}",status=401)
 
 
-
 """
     Shard Instance Registration - Makes this instance a gossip instance
 
@@ -330,3 +329,52 @@ def shardInstance(request):
     #return the ipv4 of the instance
     instance = registeredInstance.objects.get(instance_name=instance_name)
     return HttpResponse(instance.ipv4,status=200)
+
+
+"""
+    (GET) /api/version/shard_download/<queryString> → Downloads a file from a shard instance
+	headers: 
+        SHARD_KEY
+	Responses:
+		200 → File 
+		* 
+"""
+def shardDownload(request,queryString):
+    #check if the SHARD_KEY is defined in the enviroment variables
+    if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
+    
+    #check shard key is specified
+    if "SHARD-KEY" not in request.headers: return HttpResponse("Missing Header SHARD-KEY ",status=400)
+
+    #check if the SHARD_KEY is correct
+    if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
+
+    # Get Signature
+    signature = request.GET.get("signature") if "signature" in request.GET else None
+
+    # Parse the queryString
+    instance, filename = queryParser.parse(queryString)
+
+    #check if the instance is not this one
+    if instance != os.environ.get("INSTANCE_NAME"): return shardQueryHelper.retriveFromShard(instance,filename)
+
+    #check if the file exists
+    if not storedFile.objects.filter(filename=filename).exists(): 
+        return HttpResponse(f"Does not exist {filename} on instance {instance}",status=404)
+
+    #check if the file is public
+    if storedFile.objects.get(filename=filename).public:
+        file_path = f'./Storage/Local/{filename}'
+        chunk_size = 80 * (1024 * 1024) #80mb
+        filename = os.path.basename(file_path)
+
+        response = StreamingHttpResponse(
+            FileWrapper(open(file_path, 'rb'), chunk_size),
+            content_type="application/octet-stream"
+        )
+        response['Content-Length'] = os.path.getsize(file_path)    
+        response['Content-Disposition'] = "attachment; filename=%s" % filename
+        return response
+
+    #denied
+    return HttpResponse(f"Access denied for file {filename} from instance {instance}",status=401)
