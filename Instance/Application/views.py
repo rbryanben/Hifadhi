@@ -137,10 +137,10 @@ def download(request,queryString):
     #check if the file is public
     if storedFile.objects.get(filename=filename).public: return sendFile(filename)
 
-    print(signature)
+
     #check if the signature is not null and correct 
     if signature != None and presignedURL.objects.filter(signature=signature).exists():
-        print("signature present")
+
         #check if the signature has not exipred 
         signatureRecord = presignedURL.objects.get(signature=signature)
         
@@ -420,8 +420,8 @@ def shardDownload(request,queryString):
     if not storedFile.objects.filter(filename=filename).exists(): 
         return HttpResponse(f"Does not exist {filename} on instance {instance}",status=404)
 
-    #check if the file is public
-    if storedFile.objects.get(filename=filename).public:
+    #function to send the file 
+    def sendFile(filename):
         file_path = f'./Storage/Local/{filename}'
         chunk_size = 80 * (1024 * 1024) #80mb
         filename = os.path.basename(file_path)
@@ -434,7 +434,27 @@ def shardDownload(request,queryString):
         response['Content-Disposition'] = "attachment; filename=%s" % filename
         return response
 
-    #denied
+    #check if the file is public
+    if storedFile.objects.get(filename=filename).public:
+        return sendFile(filename)
+
+
+    # check if the signature is not null and correct 
+    if signature != None and presignedURL.objects.filter(signature=signature).exists():
+
+        #check if the signature has not exipred 
+        signatureRecord = presignedURL.objects.get(signature=signature)
+        utc = pytz.UTC
+        current_time = datetime.now().replace(tzinfo=utc)
+        expiration_time = signatureRecord.expires
+        print(current_time)
+        print(expiration_time)
+
+        if (current_time < expiration_time): return sendFile(filename)
+       
+        #delete the record
+        signatureRecord.delete() 
+
     return HttpResponse(f"Access denied for file {filename} from instance {instance}",status=401)
 
 
