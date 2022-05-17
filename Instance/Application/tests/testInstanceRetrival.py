@@ -49,5 +49,5 @@ class testInstanceRetrival(TestCase):
         response = self.client.get('/api/v1/registered_instances',HTTP_SHARD_KEY="2022RBRYANBEN")
         self.assertEqual(200,response.status_code)
         
-        instances = [instance.get("instance_name") for instance in json.loads(response.content)]
+        instances = json.loads(response.content)
         self.assertGreater(len(instances),0)

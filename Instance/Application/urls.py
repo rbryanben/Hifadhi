@@ -11,4 +11,5 @@ urlpatterns = [
     path('v1/registered_instances',registeredInstances,name="Retrive Registered Instances"),
     path('v1/shard_instance',shardInstance,name="Get IPv4 of an instance"),
     path('v1/shard_download/<str:queryString>',shardDownload,name="Download endpoint for other instances"),
+    path('v1/presign/<str:queryString>',preSignedAccess,name="Obtains a pre-signed url")
 ]

@@ -92,4 +92,12 @@ class cachedFile(models.Model):
     size = models.BigIntegerField(default=0)
 
 
-    
+"""
+    Presigned URLs 
+"""
+class presignedURL(models.Model):
+    signature = models.CharField(max_length=256,primary_key=True,null=False)
+    expires = models.DateTimeField(null=False)
+    created = models.DateTimeField(auto_now=True)
+    file = models.ForeignKey(storedFile,on_delete=models.CASCADE)
+

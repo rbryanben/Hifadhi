@@ -1,17 +1,17 @@
-import imp
+from datetime import datetime, timedelta
+import pytz
 import mimetypes
 import re
 from django.http import HttpResponse, StreamingHttpResponse
-from urllib3 import Retry
 from Shared.decorators import PostOnly
 from Shared.storage import store as storeFile, cache as cacheFile
-from Shared.models import storedFile, registeredInstance, cachedFile
+from Shared.models import storedFile, registeredInstance, cachedFile, presignedURL
 from django.db.models import Sum
 from Shared.Util import queryParser
 from Shared.Util import shardQueryHelper
 from wsgiref.util import FileWrapper
-from hurry.filesize import size
 from Shared.Util.bucket import get_client_ip, range_re, RangeFileWrapper
+import uuid
 import Main.urls as startUp
 import psutil
 import json
@@ -120,8 +120,8 @@ def download(request,queryString):
     if not storedFile.objects.filter(filename=filename).exists(): 
         return HttpResponse(f"Does not exist {filename} on instance {instance}",status=404)
 
-    #check if the file is public
-    if storedFile.objects.get(filename=filename).public:
+    #method to send the file as to avoid repition
+    def sendFile(filename):
         file_path = f'./Storage/Local/{filename}'
         chunk_size = 15 * (1024 * 1024) #15mb
         filename = os.path.basename(file_path)
@@ -133,6 +133,28 @@ def download(request,queryString):
         response['Content-Length'] = os.path.getsize(file_path)    
         response['Content-Disposition'] = "attachment; filename=%s" % filename
         return response
+
+    #check if the file is public
+    if storedFile.objects.get(filename=filename).public: return sendFile(filename)
+
+    print(signature)
+    #check if the signature is not null and correct 
+    if signature != None and presignedURL.objects.filter(signature=signature).exists():
+        print("signature present")
+        #check if the signature has not exipred 
+        signatureRecord = presignedURL.objects.get(signature=signature)
+        
+        utc = pytz.UTC
+        current_time = datetime.now().replace(tzinfo=utc)
+        expiration_time = signatureRecord.expires
+        print(current_time)
+        print(expiration_time)
+
+        if (current_time < expiration_time): return sendFile(filename)
+       
+        #delete the record
+        signatureRecord.delete()
+
     
     #denied
     return HttpResponse(f"Access denied for file {filename} from instance {instance}",status=401)
@@ -417,3 +439,48 @@ def shardDownload(request,queryString):
 
     #denied
     return HttpResponse(f"Access denied for file {filename} from instance {instance}",status=401)
+
+
+
+"""
+    (GET) /api/version/pre-sign/queryString → request for a presigned URL 
+	headers(SHARD_KEY)
+	Parameters:
+		duration: Time in seconds
+	Responses:
+		200 → Success
+		* 
+"""
+def preSignedAccess(request,queryString):
+    #check if the SHARD_KEY is defined in the enviroment variables
+    if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
+    
+    #check shard key is specified
+    if "SHARD-KEY" not in request.headers: return HttpResponse("Missing Header SHARD-KEY ",status=400)
+
+    #check if the SHARD_KEY is correct
+    if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
+
+    #check if the duration is defined 
+    if "duration" not in request.GET: return HttpResponse("Value duration is not defined",status=400)
+
+    # Parse the queryString
+    instance, filename = queryParser.parse(queryString)
+
+    #check if the file exists
+    if not storedFile.objects.filter(filename=filename).exists(): 
+        return HttpResponse(f"Does not exist {filename} on instance {instance}",status=404)
+    
+    file = storedFile.objects.get(filename=filename)
+    duration = request.GET.get("duration")
+
+    #generate presigned url
+    signature = str(uuid.uuid4()) + str(uuid.uuid4()) + str(uuid.uuid4()) + str(uuid.uuid4()) 
+    while presignedURL.objects.filter(signature=signature).exists():
+        signature = str(uuid.uuid4()) + str(uuid.uuid4()) + str(uuid.uuid4()) + str(uuid.uuid4()) 
+    
+    #create a presigned url object
+    record = presignedURL(signature=signature,created=datetime.now()+timedelta(seconds=0),file=file,expires=datetime.now()+timedelta(seconds=int(duration)))
+    record.save()
+
+    return HttpResponse(f"{queryString}?signature={signature}")

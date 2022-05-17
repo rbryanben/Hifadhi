@@ -3,4 +3,5 @@ django-cors-headers
 hurry.filesize
 psutil
 requests
+pytz
 gunicorn

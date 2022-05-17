@@ -55,8 +55,6 @@ class testInstanceRegistration(TestCase):
         #check if all the instances where registered from the last response
         instancesRegistered = json.loads(response.content.decode("utf8"))
 
-        instanceNames = [instance["instance_name"] for instance in instancesRegistered]
-        self.assertEqual(3,len(instanceNames))    
 
     def testRegistrationWithoutShardKey(self):
         response = self.client.post("/api/v1/register",self.instance_neptune)
