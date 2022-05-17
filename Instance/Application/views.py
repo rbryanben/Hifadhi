@@ -114,7 +114,7 @@ def download(request,queryString):
 
     
     #check if the instance is not this one
-    if instance != os.environ.get("INSTANCE_NAME"): return shardQueryHelper.retriveFromShard(request,instance,filename)
+    if instance != os.environ.get("INSTANCE_NAME"): return shardQueryHelper.retriveFromShard(request,instance,filename,queryString,signature=signature)
 
     #check if the file exists
     if not storedFile.objects.filter(filename=filename).exists(): 
@@ -177,7 +177,7 @@ def stream(request,queryString):
 
     
     #check if the instance is not this one
-    if instance != os.environ.get("INSTANCE_NAME"): return shardQueryHelper.retriveFromShard(request,instance,filename)
+    if instance != os.environ.get("INSTANCE_NAME"): return shardQueryHelper.retriveFromShard(request,instance,filename,queryString,signature=signature)
 
     #check if the file exists
     if not storedFile.objects.filter(filename=filename).exists(): 
@@ -415,9 +415,6 @@ def shardDownload(request,queryString):
 
     # Parse the queryString
     instance, filename = queryParser.parse(queryString)
-
-    #check if the instance is not this one
-    if instance != os.environ.get("INSTANCE_NAME"): return shardQueryHelper.retriveFromShard(request,instance,filename)
 
     #check if the file exists
     if not storedFile.objects.filter(filename=filename).exists(): 

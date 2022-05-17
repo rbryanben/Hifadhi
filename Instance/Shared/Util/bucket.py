@@ -70,6 +70,8 @@ def registerToInstance(instance_ip):
 
     print("Failed To Connect To Gossip Instance -> Exception: " + startUp.registeredOnGossip[1] + "\n\n")
 
+
+
 """
     Streaming Class 
 """
