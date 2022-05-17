@@ -91,6 +91,7 @@ class RangeFileWrapper(object):
 
     def __next__(self):
         if self.remaining is None:
+            print("Stream ended")
             # If remaining is None, we're reading the entire file.
             data = self.filelike.read(self.blksize)
             if data:

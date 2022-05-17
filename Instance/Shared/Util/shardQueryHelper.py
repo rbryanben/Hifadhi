@@ -14,10 +14,6 @@ def retriveFromShard(request,instance,filename,queryString, signature=None):
     """
         Get the instance Ipv4 
     """
-
-    #check if the file is stored in the local cache
-    print("skipped obtaining from local cache")
-
     #function to get IPv4 from list returned on registration
     def getInstanceIpv4(instance, Startup):
         if instance in Startup.knownInstances:
@@ -40,17 +36,25 @@ def retriveFromShard(request,instance,filename,queryString, signature=None):
         return HttpResponse(f"Could not find instance {instance}",status=404)
     
     # get the file
-    try:
-        with requests.get(f"http://{instanceIPv4}/api/v1/shard_download/{queryString}?signature={signature}",stream=True,headers={"SHARD-KEY":os.environ.get("SHARD_KEY")}) as stream:
+
+    with requests.get(f"http://{instanceIPv4}/api/v1/shard_download/{queryString}?signature={signature}",stream=True,headers={"SHARD-KEY":os.environ.get("SHARD_KEY")}) as stream:
+        if stream.status_code == 200:
             stream.raise_for_status()
-            with open(f"./Storage/Cache/{filename}","wb") as cacheFile:
-                for chunk in stream.iter_content(chunk_size=8192):
-                    cacheFile.write(chunk)
-    except:
-        return HttpResponse(f"Failed to get {filename} from {instance}",status=404)
+            #check if the file exists
+            if queryString in os.listdir("./Storage/Temp/"):
+                print("using cached file")
+                stream.close()
+            else:     
+                with open(f"./Storage/Temp/{queryString}","wb") as cacheFile:
+                    for chunk in stream.iter_content(chunk_size=8192):
+                        cacheFile.write(chunk)
+        else:
+            #file is private
+            return HttpResponse(stream.text,status=stream.status_code)
+        
 
     #return the file stream
-    path = f"./Storage/Cache/{filename}"
+    path = f"./Storage/Temp/{queryString}"
     range_header = request.META.get('HTTP_RANGE', '').strip()
     range_match = range_re.match(range_header)
     size = os.path.getsize(path)
