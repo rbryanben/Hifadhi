@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 import pytz
 import mimetypes
-import re
 from django.http import HttpResponse, StreamingHttpResponse
 from Shared.decorators import PostOnly
 from Shared.storage import store as storeFile, cache as cacheFile
@@ -491,6 +490,9 @@ def preSignedAccess(request,queryString):
     file = storedFile.objects.get(filename=filename)
     duration = request.GET.get("duration")
 
+    #if file is public dont generate simply return the query string
+    if file.public: return HttpResponse(queryString,status=200)
+
     #generate presigned url
     signature = str(uuid.uuid4()) + str(uuid.uuid4()) + str(uuid.uuid4()) + str(uuid.uuid4()) 
     while presignedURL.objects.filter(signature=signature).exists():
@@ -501,3 +503,46 @@ def preSignedAccess(request,queryString):
     record.save()
 
     return HttpResponse(f"{queryString}?signature={signature}")
+
+
+"""    
+    (POST) /api/version/ipv4access/<queryString> → requests IPv4 access for a file
+        Parameters:
+            ipv4: The clients IPv4 address 
+            duration: Time in seconds
+        Headers: 
+            SHARD_KEY
+        Responses:
+            200 → File 
+            * 
+"""
+def IPv4Access(request,queryString):
+    #check if the SHARD_KEY is defined in the enviroment variables
+    if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
+    
+    #check shard key is specified
+    if "SHARD-KEY" not in request.headers: return HttpResponse("Missing Header SHARD-KEY ",status=400)
+
+    #check if the SHARD_KEY is correct
+    if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
+
+    #check if the duration is defined 
+    if "duration" not in request.GET: return HttpResponse("Value duration is not defined",status=400)
+
+    #check if the ipv4 is defined 
+    if "ipv4" not in request.GET: return HttpResponse("Value ipv4 is not defined",status=400)
+
+    # Parse the queryString
+    instance, filename = queryParser.parse(queryString)
+
+    #check if the file exists
+    if not storedFile.objects.filter(filename=filename).exists(): 
+        return HttpResponse(f"Does not exist {filename} on instance {instance}",status=404)
+    
+    file = storedFile.objects.get(filename=filename)
+    duration = request.GET.get("duration")
+    ipv4 = request.GET.get("ipv4")
+
+    return HttpResponse("Should Give Access To The File")
+
+
