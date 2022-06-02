@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'Main',
     'Shared',
     'corsheaders',
-    
+    'rest_framework',
 ]
 
 MIDDLEWARE = [

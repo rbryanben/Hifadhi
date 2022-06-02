@@ -5,3 +5,4 @@ psutil
 requests
 pytz
 gunicorn
+djangorestframework

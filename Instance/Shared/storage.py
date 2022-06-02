@@ -1,3 +1,5 @@
+import psutil
+
 """
     Shared.py 
 
@@ -24,6 +26,11 @@ def store(file,fileName,override=False,public=True):
     fileSize = file.tell()
     file.seek(0,0)
 
+    #check if there is space for this operation
+    hdd = psutil.disk_usage('/')
+    free = hdd.total - hdd.used
+
+    if fileSize > free : return [False,"Insufficient Storage"]
 
     # Do not Override the file
     if (override == False):
@@ -65,6 +72,12 @@ def cache(file,fileQueryName,public=True):
     fileSize = file.tell()
     file.seek(0,0)
 
+    #check if there is space for this operation
+    hdd = psutil.disk_usage('/')
+    free = hdd.total - hdd.used
+
+    if fileSize > free : return [False,"Insufficient Storage"]
+    
     #delete any previous records 
     cachedFile.objects.filter(fileQueryName=fileQueryName).delete()
 

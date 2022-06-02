@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import pytz
 import mimetypes
 from django.http import HttpResponse, StreamingHttpResponse
-from Shared.decorators import PostOnly
+from rest_framework.decorators import api_view
 from Shared.storage import store as storeFile, cache as cacheFile
 from Shared.models import storedFile, registeredInstance, cachedFile, presignedURL, ipv4Access
 from django.db.models import Sum
@@ -24,7 +24,19 @@ import time
 	Responses:
 		200 → The file was stored 
 """
+@api_view(['POST',])
 def store(request):
+
+    #check if the SHARD_KEY is defined in the enviroment variables
+    if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
+    
+    #check shard key is specified
+    if "SHARD-KEY" not in request.headers: return HttpResponse("Missing Header SHARD-KEY ",status=400)
+
+    
+    #check if the SHARD_KEY is correct
+    if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
+
     # Block other methods 
     if request.method != "POST": 
         return HttpResponse("Invalid Method -> POST Only",status=400)
@@ -72,7 +84,18 @@ def store(request):
 		200 → File was cached
 		* 
 """
+@api_view(['POST',])
 def cache(request):
+    #check if the SHARD_KEY is defined in the enviroment variables
+    if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
+    
+    #check shard key is specified
+    if "SHARD-KEY" not in request.headers: return HttpResponse("Missing Header SHARD-KEY ",status=400)
+
+    
+    #check if the SHARD_KEY is correct
+    if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
+    
     #Get the file
     file = request.FILES.get("file")
 
@@ -104,6 +127,7 @@ def cache(request):
 		200 → The file was stored 
 		* 
 """
+@api_view(['GET',])
 def download(request,queryString):
     # Get Signature
     signature = request.GET.get("signature") if "signature" in request.GET else None
@@ -171,12 +195,13 @@ def download(request,queryString):
 
 
 """
-    GET) /api/versions/stream → Streams the file as chunks (Perfect for video streaming)
+    (GET) /api/versions/stream → Streams the file as chunks (Perfect for video streaming)
 	stream(queryString) 
 	Responses:
 		200 → File was cached
 		* 
 """
+@api_view(['GET',])
 def stream(request,queryString):
      # Get Signature
     signature = request.GET.get("signature") if "signature" in request.GET else None
@@ -261,6 +286,7 @@ def stream(request,queryString):
 		200 → instance was registered 
 		* 
 """
+@api_view(['POST',])
 def register(request):
     #check if the SHARD_KEY is defined in the enviroment variables
     if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
@@ -343,6 +369,7 @@ def register(request):
 		200 → List of registered instances 
 		*
 """
+@api_view(['GET',])
 def registeredInstances(request):
 
     #check if the SHARD_KEY is defined in the enviroment variables
@@ -391,6 +418,7 @@ def registeredInstances(request):
     (GET) /api/version/health -> returns the health of an instance
 
 """
+@api_view(['GET',])
 def health(request):
     response = {
         "status" : "healthy",
@@ -409,6 +437,7 @@ def health(request):
 		200 → Success
 		* 
 """
+@api_view(['GET',])
 def shardInstance(request):
     #check if the SHARD_KEY is defined in the enviroment variables
     if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
@@ -440,6 +469,7 @@ def shardInstance(request):
 		200 → File 
 		* 
 """
+@api_view(['GET',])
 def shardDownload(request,queryString):
     #check if the SHARD_KEY is defined in the enviroment variables
     if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
@@ -510,6 +540,7 @@ def shardDownload(request,queryString):
 		200 → Success
 		* 
 """
+@api_view(['GET',])
 def preSignedAccess(request,queryString):
     #check if the SHARD_KEY is defined in the enviroment variables
     if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
@@ -549,7 +580,7 @@ def preSignedAccess(request,queryString):
 
 
 """    
-    (POST) /api/version/ipv4access/<queryString> → requests IPv4 access for a file
+    (GET) /api/version/ipv4access/<queryString> → requests IPv4 access for a file
         Parameters:
             ipv4: The clients IPv4 address 
             duration: Time in seconds
@@ -559,7 +590,9 @@ def preSignedAccess(request,queryString):
             200 → File 
             * 
 """
+@api_view(['GET','DELETE'])
 def IPv4Access(request,queryString):
+
     #check if the SHARD_KEY is defined in the enviroment variables
     if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
     
@@ -569,31 +602,87 @@ def IPv4Access(request,queryString):
     #check if the SHARD_KEY is correct
     if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
 
-    #check if the duration is defined 
-    if "duration" not in request.GET: return HttpResponse("Value duration is not defined",status=400)
+    """
+        (GET) ipv4Access
+    """
+    if request.method == "GET":
+        #check if the duration is defined 
+        if "duration" not in request.GET: return HttpResponse("Value duration is not defined",status=400)
 
-    #check if the ipv4 is defined 
-    if "ipv4" not in request.GET: return HttpResponse("Value ipv4 is not defined",status=400)
+        #check if the ipv4 is defined 
+        if "ipv4" not in request.GET: return HttpResponse("Value ipv4 is not defined",status=400)
 
-    # Parse the queryString
-    instance, filename = queryParser.parse(queryString)
+        # Parse the queryString
+        instance, filename = queryParser.parse(queryString)
 
-    #check if the file exists
-    if not storedFile.objects.filter(filename=filename).exists(): 
-        return HttpResponse(f"Does not exist {filename} on instance {instance}",status=404)
+        #check if the file exists
+        if not storedFile.objects.filter(filename=filename).exists(): 
+            return HttpResponse(f"Does not exist {filename} on instance {instance}",status=404)
+        
+        file = storedFile.objects.get(filename=filename)
+        duration = request.GET.get("duration")
+        ipv4 = request.GET.get("ipv4")
+
+        #if file is public dont generate simply return the query string
+        if file.public: return HttpResponse(queryString,status=200)
+
+        #create the IPv4 Access 
+        access = ipv4Access(ipv4=ipv4,created=datetime.now()+timedelta(seconds=0),
+            file=file,expires=datetime.now()+timedelta(seconds=int(duration)))
+        access.save()
+
+        return HttpResponse(ipv4)
+
+    """
+        (DELETE) ipv4Acess
+    """
+    if request.method == "DELETE":
+        
+        #check if the ipv4 is defined 
+        if "ipv4" not in request.GET: return HttpResponse("Value ipv4 is not defined",status=400)
+
+        # Parse the queryString
+        instance, filename = queryParser.parse(queryString)
+
+        #check if the file exists
+        if not storedFile.objects.filter(filename=filename).exists(): 
+            return HttpResponse(f"Does not exist {filename} on instance {instance}",status=200)
+        
+
+        #delete the access object
+        file = storedFile.objects.get(filename=filename)
+        ipv4 = request.GET["ipv4"]
+        ipv4Access.objects.filter(ipv4=ipv4,file=file).delete()
+
+        return HttpResponse(f"Revoked Access To {queryString} from IP Address {ipv4}")
+
+"""
+    (DELETE) /api/version/presign → delete presigned URL access 
+	headers(SHARD_KEY)
+	Parameters:
+		signature
+	Responses:
+		200 → Success
+		* 
+"""
+@api_view(['DELETE',])
+def preSignedAccessDelete(request):
+
+    #check if the SHARD_KEY is defined in the enviroment variables
+    if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
     
-    file = storedFile.objects.get(filename=filename)
-    duration = request.GET.get("duration")
-    ipv4 = request.GET.get("ipv4")
+    #check shard key is specified
+    if "SHARD-KEY" not in request.headers: return HttpResponse("Missing Header SHARD-KEY ",status=400)
 
-    #if file is public dont generate simply return the query string
-    if file.public: return HttpResponse(queryString,status=200)
+    
+    #check if the SHARD_KEY is correct
+    if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
 
-    #create the IPv4 Access 
-    access = ipv4Access(ipv4=ipv4,created=datetime.now()+timedelta(seconds=0),
-        file=file,expires=datetime.now()+timedelta(seconds=int(duration)))
-    access.save()
+    #check if signature parameter is present in the request
+    if "signature" not in request.GET: return HttpResponse("Missing parameter signature",status=400)
 
-    return HttpResponse(ipv4)
-
-
+    #delete the signature
+    signature = request.GET["signature"]
+    presignedURL.objects.filter(signature=signature).delete()
+    return HttpResponse(signature,status=200)
+    
