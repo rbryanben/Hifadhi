@@ -25,6 +25,13 @@ class storedFile(models.Model):
             "queryString" : self.queryString,
         }
 
+    """
+        Returns datetime last updated
+    """
+    def lastUpdated(self):
+        return self.stored.strftime("%Y%m%d%H%M%S") 
+
+
 def filenameTaken(fileName):
     if storedFile.objects.filter(filename=fileName).exists():
         return True
@@ -91,6 +98,21 @@ class cachedFile(models.Model):
     public = models.BooleanField(default=True)
     size = models.BigIntegerField(default=0)
 
+    """
+        Returns datetime timestamp cached
+    """
+    def lastUpdated(self):
+        return int(self.cached.strftime("%Y%m%d%H%M%S"))
+    
+    """
+        Updates the file 
+    """
+    def update(self,size):
+        self.size = size
+        self.cached = datetime.now()
+        self.save()
+
+
 
 """
     Presigned URLs 
@@ -100,4 +122,16 @@ class presignedURL(models.Model):
     expires = models.DateTimeField(null=False)
     created = models.DateTimeField(auto_now=True)
     file = models.ForeignKey(storedFile,on_delete=models.CASCADE)
+
+
+"""
+    ipv4Access
+"""
+class ipv4Access(models.Model):
+    ipv4 = models.CharField(max_length=25,null=False)
+    expires = models.DateTimeField(null=False)
+    created = models.DateTimeField(auto_now=True)
+    file = models.ForeignKey(storedFile,on_delete=models.CASCADE)
+
+
 

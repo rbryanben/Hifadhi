@@ -4,12 +4,12 @@ import mimetypes
 from django.http import HttpResponse, StreamingHttpResponse
 from Shared.decorators import PostOnly
 from Shared.storage import store as storeFile, cache as cacheFile
-from Shared.models import storedFile, registeredInstance, cachedFile, presignedURL
+from Shared.models import storedFile, registeredInstance, cachedFile, presignedURL, ipv4Access
 from django.db.models import Sum
 from Shared.Util import queryParser
 from Shared.Util import shardQueryHelper
 from wsgiref.util import FileWrapper
-from Shared.Util.bucket import get_client_ip, range_re, RangeFileWrapper
+from Shared.Util.bucket import get_client_ip, range_re, RangeFileWrapper, sha256sum
 import uuid
 import Main.urls as startUp
 import psutil
@@ -146,13 +146,23 @@ def download(request,queryString):
         utc = pytz.UTC
         current_time = datetime.now().replace(tzinfo=utc)
         expiration_time = signatureRecord.expires
-        print(current_time)
-        print(expiration_time)
-
         if (current_time < expiration_time): return sendFile(filename)
        
         #delete the record
         signatureRecord.delete()
+    
+    #check for ipv4Access
+    clientIP = get_client_ip(request)
+    if ipv4Access.objects.filter(ipv4=clientIP).exists():
+        accessRecord = ipv4Access.objects.get(ipv4=clientIP)
+        
+        utc = pytz.UTC
+        current_time = datetime.now().replace(tzinfo=utc)
+        expiration_time = accessRecord.expires
+        if (current_time < expiration_time): return sendFile(filename)
+       
+        #delete the record
+        accessRecord.delete()
 
     
     #denied
@@ -182,8 +192,8 @@ def stream(request,queryString):
     if not storedFile.objects.filter(filename=filename).exists(): 
         return HttpResponse(f"Does not exist {filename} on instance {instance}",status=404)
 
-    #check if the file is public
-    if storedFile.objects.get(filename=filename).public:
+    #function to stream a file 
+    def streamFile(filename):
         path = f'./Storage/Local/{filename}'
         range_header = request.META.get('HTTP_RANGE', '').strip()
         range_match = range_re.match(range_header)
@@ -205,8 +215,39 @@ def stream(request,queryString):
             resp['Content-Length'] = str(size)
         resp['Accept-Ranges'] = 'bytes'
         return resp
+
+    #check if the file is public
+    if storedFile.objects.get(filename=filename).public:
+        return streamFile(filename)
     
-    #file is private
+    #check if the signature is not null and correct 
+    if signature != None and presignedURL.objects.filter(signature=signature).exists():
+
+        #check if the signature has not exipred 
+        signatureRecord = presignedURL.objects.get(signature=signature)
+        
+        utc = pytz.UTC
+        current_time = datetime.now().replace(tzinfo=utc)
+        expiration_time = signatureRecord.expires
+        if (current_time < expiration_time): return streamFile(filename)
+       
+        #delete the record
+        signatureRecord.delete()
+
+    #check for ipv4Access
+    clientIP = get_client_ip(request)
+    if ipv4Access.objects.filter(ipv4=clientIP).exists():
+        accessRecord = ipv4Access.objects.get(ipv4=clientIP)
+        
+        utc = pytz.UTC
+        current_time = datetime.now().replace(tzinfo=utc)
+        expiration_time = accessRecord.expires
+        if (current_time < expiration_time): return streamFile(filename)
+       
+        #delete the record
+        accessRecord.delete()
+
+    #Denied
     return HttpResponse(f"Access denied for file {filename} from instance {instance}",status=401)
 
 
@@ -420,7 +461,7 @@ def shardDownload(request,queryString):
         return HttpResponse(f"Does not exist {filename} on instance {instance}",status=404)
 
     #function to send the file 
-    def sendFile(filename):
+    def sendFile(filename,last_updated):
         file_path = f'./Storage/Local/{filename}'
         chunk_size = 80 * (1024 * 1024) #80mb
         filename = os.path.basename(file_path)
@@ -430,12 +471,14 @@ def shardDownload(request,queryString):
             content_type="application/octet-stream"
         )
         response['Content-Length'] = os.path.getsize(file_path)    
+        response['Last-Updated'] = last_updated
         response['Content-Disposition'] = "attachment; filename=%s" % filename
         return response
 
     #check if the file is public
-    if storedFile.objects.get(filename=filename).public:
-        return sendFile(filename)
+    storedFileObject = storedFile.objects.get(filename=filename)
+    if storedFileObject:
+        return sendFile(filename,storedFileObject.lastUpdated())
 
 
     # check if the signature is not null and correct 
@@ -449,7 +492,7 @@ def shardDownload(request,queryString):
         print(current_time)
         print(expiration_time)
 
-        if (current_time < expiration_time): return sendFile(filename)
+        if (current_time < expiration_time): return sendFile(filename,storedFileObject.lastUpdated())
        
         #delete the record
         signatureRecord.delete() 
@@ -543,6 +586,14 @@ def IPv4Access(request,queryString):
     duration = request.GET.get("duration")
     ipv4 = request.GET.get("ipv4")
 
-    return HttpResponse("Should Give Access To The File")
+    #if file is public dont generate simply return the query string
+    if file.public: return HttpResponse(queryString,status=200)
+
+    #create the IPv4 Access 
+    access = ipv4Access(ipv4=ipv4,created=datetime.now()+timedelta(seconds=0),
+        file=file,expires=datetime.now()+timedelta(seconds=int(duration)))
+    access.save()
+
+    return HttpResponse(ipv4)
 
 

@@ -8,15 +8,15 @@ from wsgiref.util import FileWrapper
 from django.http import HttpResponse, StreamingHttpResponse
 import Main.urls as Startup
 import requests
-from Shared.Util.bucket import range_re, RangeFileWrapper, registerToInstance
-from Shared.models import cachedFile, storedFile
-
+from Shared.Util.bucket import range_re, RangeFileWrapper
+from Shared.Util.bucket import registerToInstance
+from .bucket import sha256sum
+import time
 
 def retriveFromShard(request,instance,filename,queryString, signature=None):
     """
         Get the instance Ipv4 
     """
-    if "GOSSIP_INSTANCE" not in os.environ: return HttpResponse("Shard Retrival Failure",status=500)
 
     #function to get the IPv4 from list returned on registration
     def getInstanceIpv4(instance, Startup):
@@ -29,6 +29,7 @@ def retriveFromShard(request,instance,filename,queryString, signature=None):
     
     #if instanceIPv4 is None then re-register to get an updated list of instances 
     if instanceIPv4 == None:
+        if "GOSSIP_INSTANCE" in os.environ:
             gossip_instance_ip = os.environ.get("GOSSIP_INSTANCE")
             registerToInstance(gossip_instance_ip)
 
@@ -65,7 +66,6 @@ def retriveFromShard(request,instance,filename,queryString, signature=None):
                 resp = StreamingHttpResponse(FileWrapper(open(path, 'rb')), content_type=content_type)
                 resp['Content-Length'] = str(size)
             resp['Accept-Ranges'] = 'bytes'
-
             return resp
 
         #lamda function to write the file and then send the file 
@@ -74,14 +74,6 @@ def retriveFromShard(request,instance,filename,queryString, signature=None):
                 for chunk in stream.iter_content(chunk_size=8192):
                     cacheFile.write(chunk)
             stream.close()
-
-            #create or update the record for when the file was cached
-            if cachedFile.objects.filter(fileQueryName=queryString).exists(): 
-                cachedFile.objects.get(fileQueryName=queryString).update(stream.headers.get("content-length"))
-            else:
-                cachedFileRecord = cachedFile(fileQueryName=queryString,public=False,size=int(stream.headers.get("content-length")))
-                cachedFileRecord.save()
-
             
             #send the file 
             return sendStream(f"./Storage/Temp/{queryString}") 
@@ -98,13 +90,13 @@ def retriveFromShard(request,instance,filename,queryString, signature=None):
             
         
         #but if file exists in the cache
-        #check if the cached file is still valid by checking if the cached dates match
-        cachedFileTimestamp = cachedFile.objects.get(fileQueryName=queryString).lastUpdated()
-        receivedFileTimestamp = int(stream.headers.get("last-updated"))
-
+        #check if the cached file is still valid by checking if the hashes match
+        start = time.perf_counter()
+        cachedFileHash = 1#sha256sum(f"./Storage/Temp/{queryString}")
+        receivedFileHash = 1#stream.headers.get("hashed-sum")
+        print(f"Took {time.perf_counter() -start}")
         #if hashes do not match rewrite the file and send the file 
-        if receivedFileTimestamp > cachedFileTimestamp : 
-            return writeFile(queryString,stream)
+        if receivedFileHash != cachedFileHash: return writeFile(queryString,stream)
 
         #close the stream and send the cached file 
         stream.close()
