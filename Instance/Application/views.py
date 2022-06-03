@@ -624,14 +624,14 @@ def IPv4Access(request,queryString):
         ipv4 = request.GET.get("ipv4")
 
         #if file is public dont generate simply return the query string
-        if file.public: return HttpResponse(queryString,status=200)
+        if file.public: return HttpResponse(ipv4,status=200)
 
         #create the IPv4 Access 
         access = ipv4Access(ipv4=ipv4,created=datetime.now()+timedelta(seconds=0),
             file=file,expires=datetime.now()+timedelta(seconds=int(duration)))
         access.save()
 
-        return HttpResponse(ipv4)
+        return HttpResponse(ipv4,status=200)
 
     """
         (DELETE) ipv4Acess
