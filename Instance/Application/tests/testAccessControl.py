@@ -1,6 +1,9 @@
 """
     - Obtain signature without SHARD-KEY
     - Obtain ipv4 without SHARD-KEY
+    - Obtain ipv4 and signature with missing parameters
+    - Obtain signature with invalid SHARD-KEY
+    - Obtain ipv4 with invalid SHARD-KEY
     - Obtain Signature for public file 
     - Obtain Signature for private file
     - Obtain ipv4 access for public file 
@@ -24,5 +27,15 @@ class testAccessControl(TestCase):
 
     def testObtainingSignatureWithoutKey(self):
         result = self.client.get(f"/api/v1/presign/{os.environ.get('INSTANCE_NAME')}@rex_the_dog.jpg",{"duration":60})
-        self.assertEqual(result.status_code,400) #denied
+        self.assertEqual(result.status_code,400) #Bad Request
+
+    def testObtainingIpv4WithoutKey(self):
+        result = self.client.get(f"/api/v1/ipv4access/{os.environ.get('INSTANCE_NAME')}@rex_the_dog.jpg",{"duration":60
+            ,"ipv4":"127.0.0.1"})
+        self.assertEqual(result.status_code,400) #Bad Request
+    
+
+        
+
+    
 

@@ -16,6 +16,9 @@ Tests:
   - Access Control:
     - Obtain signature without SHARD-KEY
     - Obtain ipv4 without SHARD-KEY
+    - Obtain ipv4 and signature with missing parameters
+    - Obtain signature with invalid SHARD-KEY
+    - Obtain ipv4 with invalid SHARD-KEY
     - Obtain Signature for public file 
     - Obtain Signature for private file
     - Obtain ipv4 access for public file 
