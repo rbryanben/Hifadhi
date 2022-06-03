@@ -34,8 +34,15 @@ class testAccessControl(TestCase):
             ,"ipv4":"127.0.0.1"})
         self.assertEqual(result.status_code,400) #Bad Request
     
-
+    def testObatiningAccessWithMissingParameters(self):
+        #Signature
+        result = self.client.get(f"/api/v1/presign/{os.environ.get('INSTANCE_NAME')}@rex_the_dog.jpg")
+        self.assertEqual(result.status_code,400) #Bad Request
         
+        #Ipv4 
+        result = self.client.get(f"/api/v1/ipv4access/{os.environ.get('INSTANCE_NAME')}@rex_the_dog.jpg",{"duration":60})
+        self.assertEqual(result.status_code,400) #Bad Request
+    
 
     
 
