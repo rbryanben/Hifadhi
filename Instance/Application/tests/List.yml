@@ -36,8 +36,6 @@ Tests:
     - Retriving private file (Stream & Download)
     - Retriving private file with signature
     - Retriving private file with ipv4 
-
-    #continue here
     - Retriving private file deleted signature 
     - Retriving private file expired signature
     - Retriving private file deleted ipv4 access
@@ -47,6 +45,5 @@ Tests:
     - Retring file from an instance that does not exist (With and Without Key)
     - Retriving file that does not exist from another instance (With and Without Key)
     - Retriving file from a shard (With and Without Key)
-  - Cache Invalidation:
     - Retrive file after it has been updated on the other instance
     
