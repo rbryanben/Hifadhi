@@ -23,19 +23,25 @@ Tests:
     - Obtain Signature for private file
     - Obtain ipv4 access for public file 
     - Obtain ipv4 access for private file 
+    - Delete signature without key
+    - Delete signature with invalid Key
+    - Delete signature with missing signature parameter
     - Delete signature
-    - Delete ipv4 access 
+    - Delete ipv4 access without key
+    - Delete ipv4 access with invalid key
+    - Delete ipv4 with missing parameters
+    - Delete ipv4 access
   - Retriving File:
     - Retriving public file (Stream & Download)
-    - Retriving private file 
+    - Retriving private file (Stream & Download)
     - Retriving private file with signature
     - Retriving private file with ipv4 
-    - Retriving private file with signature after signature has been:
-      - deleted 
-      - expired
-    - Retriving private file with ipv4 after ipv4 access has been:
-      - deleted 
-      - expired
+
+    #continue here
+    - Retriving private file deleted signature 
+    - Retriving private file expired signature
+    - Retriving private file deleted ipv4 access
+    -  Retriving private file expired ipv4 access
   - Shard Retrival:
     - Retriving file when instance is not in a shard 
     - Retring file from an instance that does not exist (With and Without Key)
