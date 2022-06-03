@@ -2,6 +2,7 @@ from fileinput import filename
 from unittest import result
 from django.test import TestCase
 from Shared.models import storedFile
+import os
 
 # Create your tests here.
 """
@@ -19,7 +20,8 @@ class TestStoreRoute(TestCase):
 
     def testStoringPublicFile(self):
         self.testFile.seek(0,0)
-        result = self.client.post("/api/v1/store",{"file":self.testFile,"filename":"dog.jpg"})
+        result = self.client.post("/api/v1/store",{"file":self.testFile,"filename":"dog.jpg"},
+            HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))
         self.assertEqual(result.status_code,200)
         self.assertIsNotNone(storedFile.objects.get(filename="dog.jpg"))
 
@@ -27,25 +29,29 @@ class TestStoreRoute(TestCase):
     def testStoringFileThatExists(self):
         # First file 
         self.testFile.seek(0,0)
-        result = self.client.post("/api/v1/store",{"file":self.testFile,"filename":"dog.jpg"})
+        result = self.client.post("/api/v1/store",{"file":self.testFile,"filename":"dog.jpg"},
+            HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))
 
         # Second file with the same name
         self.overrideFile.seek(0,0)
         self.assertGreater(storedFile.objects.all().count(),0)
 
         # Check if conflict is raised
-        result = self.client.post("/api/v1/store",{"file":self.overrideFile,"filename":"dog.jpg"})
+        result = self.client.post("/api/v1/store",{"file":self.overrideFile,"filename":"dog.jpg"},
+            HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))
         self.assertEqual(result.status_code,409)
 
 
     def testStoringFileWithOverride(self):
         # First file 
         self.testFile.seek(0,0)
-        result = self.client.post("/api/v1/store",{"file":self.testFile,"filename":"dog.jpg"})
+        result = self.client.post("/api/v1/store",{"file":self.testFile,"filename":"dog.jpg"},
+            HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))
 
         # Override File
         self.overrideFile.seek(0,0)
-        result = self.client.post("/api/v1/store",{"file":self.overrideFile,"filename":"dog.jpg","override":"true"})
+        result = self.client.post("/api/v1/store",{"file":self.overrideFile,"filename":"dog.jpg","override":"true"},
+            HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))
         
         self.assertEqual(result.status_code,200)
 

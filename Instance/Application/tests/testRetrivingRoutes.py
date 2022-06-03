@@ -1,5 +1,6 @@
 from urllib import response
 from django.test import TestCase
+import os
 
 class TestDownloadClass(TestCase):
 
@@ -11,8 +12,11 @@ class TestDownloadClass(TestCase):
 
         #upload a file
         self.testFile.seek(0,0)
-        result = self.client.post("/api/v1/store",{"file":self.testFile,"filename":"dog.jpg"})
+        result = self.client.post("/api/v1/store",{"file":self.testFile,"filename":"dog.jpg"},
+            HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))
+ 
         self.assertEqual(result.status_code,200)
+        
         
         #download the file 
         queryString = result.content.decode("utf8") 
