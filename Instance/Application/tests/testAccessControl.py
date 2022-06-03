@@ -24,16 +24,24 @@ class testAccessControl(TestCase):
             HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))
 
         return
-
+    """
+        Obtain signature without SHARD-KEY
+    """
     def testObtainingSignatureWithoutKey(self):
         result = self.client.get(f"/api/v1/presign/{os.environ.get('INSTANCE_NAME')}@rex_the_dog.jpg",{"duration":60})
         self.assertEqual(result.status_code,400) #Bad Request
 
+    """
+        Obtain ipv4 without SHARD-KEY
+    """
     def testObtainingIpv4WithoutKey(self):
         result = self.client.get(f"/api/v1/ipv4access/{os.environ.get('INSTANCE_NAME')}@rex_the_dog.jpg",{"duration":60
             ,"ipv4":"127.0.0.1"})
         self.assertEqual(result.status_code,400) #Bad Request
     
+    """
+        Obtain ipv4 and signature with missing parameters
+    """
     def testObatiningAccessWithMissingParameters(self):
         #Signature
         result = self.client.get(f"/api/v1/presign/{os.environ.get('INSTANCE_NAME')}@rex_the_dog.jpg")
@@ -43,6 +51,13 @@ class testAccessControl(TestCase):
         result = self.client.get(f"/api/v1/ipv4access/{os.environ.get('INSTANCE_NAME')}@rex_the_dog.jpg",{"duration":60})
         self.assertEqual(result.status_code,400) #Bad Request
     
-
+    """
+       Obtain signature with invalid SHARD-KEY 
+    """
+    def testObtainingIpv4InvalidKey(self):
+        result = self.client.get(f"/api/v1/ipv4access/{os.environ.get('INSTANCE_NAME')}@rex_the_dog.jpg",{"duration":60
+            ,"ipv4":"127.0.0.1"},HTTP_SHARD_KEY="INVALIDKEY")
+        self.assertEqual(result.status_code,401) #Bad Request
+    
     
 
