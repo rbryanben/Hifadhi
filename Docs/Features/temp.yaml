@@ -1,6 +1,9 @@
-April_30_22:
-  - Tasks:
-    - Data Retrival:
-      Dependencies:
-        - Access Control
- 
+Tasks:
+  - Gossip Instance:
+      - Adapter cache instruction
+      - When a file is deleted it should be removed from any cache 
+      - Cache instruction to cache a file with priority
+      - Cache invalidation (Removing Files That are cached when memory is full)
+
+      
+      

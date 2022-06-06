@@ -1,1 +1,4 @@
-/Storage/Local
+/Storage/Local/*
+/Storage/Temp/*
+/Storage/Cache/*
+db.sqlite3
