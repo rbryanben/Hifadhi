@@ -36,8 +36,9 @@ def  shardNotRequired(func):
 
 class testShardRetrival(TestCase):
 
-    @shardRequired
     def setUp(self):
+        if "GOSSIP_INSTANCE" not in os.environ: return
+
         self.instance_name = os.environ.get("INSTANCE_NAME")
         self.gossip_instance_ip = os.environ.get("GOSSIP_INSTANCE")
         
@@ -56,6 +57,8 @@ class testShardRetrival(TestCase):
         
         #test file
         self.testFile = open("./Storage/Tests/dog.jpg","rb")
+        self.public_test_file_name = "rex_public.jpg"
+        self.private_test_file_name = "rex_private.jpg"
 
         #upload a public file 
         self.testFile.seek(0,0)
@@ -63,7 +66,7 @@ class testShardRetrival(TestCase):
 
         form = encoder.MultipartEncoder({
             "file": ("file",self.testFile, "application/octet-stream"),
-            "filename":"rex_public.jpg",
+            "filename":self.public_test_file_name,
             "override":"true"
         })
 
@@ -76,7 +79,7 @@ class testShardRetrival(TestCase):
 
         form = encoder.MultipartEncoder({
             "file": ("file",self.testFile, "application/octet-stream"),
-            "filename":"rex_private.jpg",
+            "filename":self.private_test_file_name,
             "override":"true",
             "mode": "private"
         })
@@ -106,6 +109,7 @@ class testShardRetrival(TestCase):
     """
         Retriving file that does not exist from another instance
     """
+    @shardRequired
     def testRetrivingNonExistingFileFromShard(self):
         result = self.client.get(f'/api/v1/download/{self.test_instance}@shouldNotExist.mp4')
         self.assertEqual(result.status_code,404)
@@ -113,6 +117,9 @@ class testShardRetrival(TestCase):
     """
         Retriving public file from a shard
     """
+    @shardRequired
     def testRetrivingPublicFileFromShard(self):
-        pass
+        result = self.client.get(f"/api/v1/download/{self.test_instance}@{self.public_test_file_name}")
+        self.assertEqual(result.status_code,200)
+
     
