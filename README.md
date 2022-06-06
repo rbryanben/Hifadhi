@@ -13,3 +13,13 @@ In this context a container running Hifadhi is refered to as an instance, and an
 - Ask other instances to cache a certain file given it is receiving too much load.
 
 # Sharding
+
+In this mechanism we want to increase the capacity of data we can store by storing data on multiple instances. Instances can obtain data from other instances and serve that data themselves as visulized below.
+
+<img src="/Docs/Images/multi_instance.png" height="400px"/>
+
+# Availability
+
+In this mechanism a file is cached on other instances to increase its availability, as the file does not have to be fetched from the instances storing that file when a request is made. Caching is done every time an instance receives a request for a file that is on another instance, that file is downloaded from the other instance and cached locally. Or be done from the adapter as below.
+
+<img src="/Docs/Images/shard_caching.png" height="500px"/>
