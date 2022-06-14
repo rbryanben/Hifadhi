@@ -74,10 +74,13 @@ def store(request):
 
 
 """
-    (POST) /api/versions/cache → Caches a file to an instance
-	cache(file,fileQueryString) 
+    (POST) /api/version/cache → cache a file on that instance
+	headers(SHARD_KEY)
+	Parameters:
+		priority: real number 1 to 2^32-1
+		query_string: file cache query string
 	Responses:
-		200 → File was cached
+		200 → Success
 		* 
 """
 @api_view(['POST',])
@@ -92,29 +95,15 @@ def cache(request):
     #check if the SHARD_KEY is correct
     if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
     
-    #Get the file
-    file = request.FILES.get("file")
+    #check if priority is present
+    if "priority" not in request.POST: return HttpResponse("Missing parameter priority")
 
-    #check all parameters present 
-    if (file is None or  "fileQueryString" not in request.POST):
-        return HttpResponse("Missing Parameters")
-
-    fileIsPublic = True
-    #check if there is public parameter
-    if ("public" in request.POST):
-        #check if public is either true or false
-        public = request.POST.get("public").lower()
-        if (public != "true") or public != "true": return HttpResponse("Public can either be true or false",status=500)
-        fileIsPublic =  bool(public)
+    #retrive the file from shard
 
 
-    #cache 
-    result = cacheFile(file,request.POST.get("fileQueryString"),public=fileIsPublic)
+    return HttpResponse("200")
 
-    if (result[0] == True):
-        return HttpResponse(result[1],status=200)
-    else:
-        return HttpResponse(result[1],status=500)
+
 
 """
     (GET) /api/version/download → 
@@ -733,7 +722,10 @@ def shardCache(request):
     with requests.get(f"http://{instanceIPv4}/api/v1/shard_download/{queryString}?check=true",headers={"SHARD-KEY":os.environ.get("SHARD_KEY")}) as resp:
         if resp.status_code != 200: return HttpResponse(resp.text,resp.status_code)
         
-    # Send request to cache the file
+    # Send request to cache the file on registered instances 
+
+
         
     return HttpResponse(instanceIPv4)
+
 
