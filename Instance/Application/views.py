@@ -1,6 +1,4 @@
 from datetime import datetime, timedelta
-import pytz
-import mimetypes
 from django.http import HttpResponse, StreamingHttpResponse
 from rest_framework.decorators import api_view
 from Shared.storage import store as storeFile, cache as cacheFile
@@ -10,12 +8,10 @@ from Shared.Util import queryParser
 from Shared.Util import shardQueryHelper
 from wsgiref.util import FileWrapper
 from Shared.Util.bucket import get_client_ip, range_re, RangeFileWrapper, sha256sum
-import uuid
 import Main.urls as startUp
-import psutil
-import json
-import os 
-import time
+import os,json,time,requests,psutil,uuid,pytz,mimetypes
+
+
 
 
 """
@@ -507,7 +503,7 @@ def shardDownload(request,queryString):
 
     #check if the file is public
     storedFileObject = storedFile.objects.get(filename=filename)
-    if storedFileObject:
+    if storedFileObject.public:
         return sendFile(filename,storedFileObject.lastUpdated())
 
 
@@ -686,3 +682,52 @@ def preSignedAccessDelete(request):
     presignedURL.objects.filter(signature=signature).delete()
     return HttpResponse(signature,status=200)
     
+
+"""
+    (POST) /api/version/shard_cache → (Gossip) cache a file on all registered instances 
+	headers(SHARD_KEY)
+	Parameters:
+		priority: real number 1 to 2^32-1
+		query_string: file cache query string
+	Responses:
+		200 → Success
+		* 
+"""
+@api_view(['POST',])
+def shardCache(request):
+    
+    #check if the SHARD_KEY is defined in the enviroment variables
+    if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
+    
+    #check shard key is specified
+    if "SHARD-KEY" not in request.headers: return HttpResponse("Missing Header SHARD-KEY ",status=400)
+
+    #check if the SHARD_KEY is correct
+    if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
+
+    #check if all parameters are defined 
+    if "priority" not in request.POST: return HttpResponse("Missing parameter priority",status=400)
+    if "query_string" not in request.POST: return HttpResponse("Missing parameter query_string", status=400)
+    priority,queryString = int(request.POST.get("priority")),request.POST.get("query_string")
+   
+    # Parse the queryString
+    instance, filename = queryParser.parse(queryString)
+
+    # Check if the file exists 
+    if os.environ.get("INSTANCE_NAME") == instance and not storedFile.objects.filter(filename=filename).exists():
+        return HttpResponse(f"Does not exist {filename} on instance {instance}",status=404)
+    
+    # Check if the instance is registered 
+    if not registeredInstance.objects.filter(instance_name=instance).exists():
+        return HttpResponse(f"Could not find instance {instance}",status=404)
+    
+    # Check if the file exists on that instance
+    instanceIPv4 = registeredInstance.objects.get(instance_name=instance).ipv4
+    with requests.get(f"http://{instanceIPv4}/api/v1/shard_download/{queryString}",stream=True,headers={"SHARD-KEY":os.environ.get("SHARD_KEY")}) as stream:
+        if stream.status_code != 200: return HttpResponse(stream.text,stream.status_code)
+        stream.close()
+
+    # Send request to cache the file
+        
+    return HttpResponse(instanceIPv4)
+

@@ -66,7 +66,7 @@ def store(file,fileName,override=False,public=True):
 		[true,fileQueryName] → File was cached.
 		[false,error] → File was not cached.
 """
-def cache(file,fileQueryName,public=True):
+def cache(file,fileQueryName,public=True,priority=0):
     # Get the file size
     file.read()
     fileSize = file.tell()
@@ -82,7 +82,7 @@ def cache(file,fileQueryName,public=True):
     cachedFile.objects.filter(fileQueryName=fileQueryName).delete()
 
     #create a new record 
-    newCachedFileRecord = cachedFile(fileQueryName=fileQueryName,public=public,size=fileSize)
+    newCachedFileRecord = cachedFile(fileQueryName=fileQueryName,public=public,size=fileSize,priority=priority)
     newCachedFileRecord.save()
 
     #check if the memory is full 

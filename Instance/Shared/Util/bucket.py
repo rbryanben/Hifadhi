@@ -32,17 +32,7 @@ def registerToInstance(instance_ip):
         startUp.registeredOnGossip = [False,"SHARD_KEY Not Defined"]
         return
 
-    hdd = psutil.disk_usage('/')
-    info = {
-        "total_memory": hdd.total / (2**30),
-        "used_memory": hdd.used / (2**30),
-        "stored_files_size": storedFile.objects.all().aggregate(Sum('size')).get("size_sum") if storedFile.objects.all().aggregate(Sum('size')).get("size_sum") != None  else 0 / (2**30),
-        "cached_files_size": cachedFile.objects.all().aggregate(Sum('size')).get("size_sum") if cachedFile.objects.all().aggregate(Sum('size')).get("size_sum") != None  else 0 / (2**30),
-        "instance_name": os.environ.get("INSTANCE_NAME") if "INSTANCE_NAME" in os.environ else "UNNAMED",
-        "stored_files_count": storedFile.objects.all().count(),
-        "cached_files_count": cachedFile.objects.all().count(),
-        "uptime": time.time() - startUp.startupTime
-    }
+    info = getInstanceInfo()
 
     #try on http
     try:
@@ -71,6 +61,21 @@ def registerToInstance(instance_ip):
     print("Failed To Connect To Gossip Instance -> Exception: " + startUp.registeredOnGossip[1] + "\n\n")
 
 
+"""
+    Function to return information about this current instance 
+"""
+def getInstanceInfo():
+    hdd = psutil.disk_usage('/')
+    return {
+        "total_memory": hdd.total / (2**30),
+        "used_memory": hdd.used / (2**30),
+        "stored_files_size": storedFile.objects.all().aggregate(Sum('size')).get("size_sum") if storedFile.objects.all().aggregate(Sum('size')).get("size_sum") != None  else 0 / (2**30),
+        "cached_files_size": cachedFile.objects.all().aggregate(Sum('size')).get("size_sum") if cachedFile.objects.all().aggregate(Sum('size')).get("size_sum") != None  else 0 / (2**30),
+        "instance_name": os.environ.get("INSTANCE_NAME") if "INSTANCE_NAME" in os.environ else "UNNAMED",
+        "stored_files_count": storedFile.objects.all().count(),
+        "cached_files_count": cachedFile.objects.all().count(),
+        "uptime": time.time() - startUp.startupTime
+    }
 
 """
     Streaming Class 

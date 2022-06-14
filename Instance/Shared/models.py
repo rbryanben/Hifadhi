@@ -1,4 +1,5 @@
 from datetime import datetime
+from pyexpat import model
 from django.db import models
 from hurry.filesize import size
 import os 
@@ -97,6 +98,7 @@ class cachedFile(models.Model):
     cached = models.DateTimeField(auto_now=True)
     public = models.BooleanField(default=True)
     size = models.BigIntegerField(default=0)
+    priority = models.IntegerField(default=0)
 
     """
         Returns datetime timestamp cached
