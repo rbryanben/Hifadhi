@@ -459,8 +459,11 @@ def shardInstance(request):
 
 """
     (GET) /api/version/shard_download/<queryString> → Downloads a file from a shard instance
-	headers: 
-        SHARD_KEY
+	Parameters:
+		signature
+		check → Used to check if a file exist 
+	Headers: 
+		SHARD_KEY
 	Responses:
 		200 → File 
 		* 
@@ -485,6 +488,10 @@ def shardDownload(request,queryString):
     #check if the file exists
     if not storedFile.objects.filter(filename=filename).exists(): 
         return HttpResponse(f"Does not exist {filename} on instance {instance}",status=404)
+
+    #check parameter is present
+    if "check" in request.GET:
+        return HttpResponse(f"File {filename} exists on instance {instance}",status=200)
 
     #function to send the file 
     def sendFile(filename,last_updated):
@@ -723,10 +730,9 @@ def shardCache(request):
     
     # Check if the file exists on that instance
     instanceIPv4 = registeredInstance.objects.get(instance_name=instance).ipv4
-    with requests.get(f"http://{instanceIPv4}/api/v1/shard_download/{queryString}",stream=True,headers={"SHARD-KEY":os.environ.get("SHARD_KEY")}) as stream:
-        if stream.status_code != 200: return HttpResponse(stream.text,stream.status_code)
-        stream.close()
-
+    with requests.get(f"http://{instanceIPv4}/api/v1/shard_download/{queryString}?check=true",headers={"SHARD-KEY":os.environ.get("SHARD_KEY")}) as resp:
+        if resp.status_code != 200: return HttpResponse(resp.text,resp.status_code)
+        
     # Send request to cache the file
         
     return HttpResponse(instanceIPv4)
