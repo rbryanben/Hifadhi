@@ -10,8 +10,8 @@ from wsgiref.util import FileWrapper
 from Shared.Util.bucket import get_client_ip, range_re, RangeFileWrapper, sha256sum
 import Main.urls as startUp
 import os,json,time,requests,psutil,uuid,pytz,mimetypes
-
-
+from Shared.Util.bucket import range_re, RangeFileWrapper, registerToInstance
+import Main.urls as Startup
 
 
 """
@@ -96,12 +96,42 @@ def cache(request):
     if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
     
     #check if priority is present
-    if "priority" not in request.POST: return HttpResponse("Missing parameter priority")
+    if "priority" not in request.POST: return HttpResponse("Missing parameter priority",status=400)
 
-    #retrive the file from shard
+    #check if the query string is defined 
+    if "query_string" not in request.POST: return HttpResponse("Missing parameter query_string",status=400)
+    
+    #parse query string 
+    instance, filename = queryParser.parse(request.POST.get("query_string"))
 
 
-    return HttpResponse("200")
+    #check if instance is in shard 
+    if "GOSSIP_INSTANCE" not in os.environ: return HttpResponse("Shard Retrival Failure",status=500)
+
+    #function to get the IPv4 from list returned on registration
+    def getInstanceIpv4(instance, Startup):
+        if instance in Startup.knownInstances:
+            return Startup.knownInstances.get(instance)['ipv4']
+        return None
+
+
+    #get the instance ipv4
+    instanceIPv4 = getInstanceIpv4(instance,Startup)
+    
+    #if instanceIPv4 is None then re-register to get an updated list of instances 
+    if instanceIPv4 == None:
+            gossip_instance_ip = os.environ.get("GOSSIP_INSTANCE")
+            registerToInstance(gossip_instance_ip)
+
+    #get the IPv4 from the updated list
+    instanceIPv4 = getInstanceIpv4(instance,Startup)
+    
+    # if instanceIPv4 is still Null update that the instance could not be found in the Shard
+    if instanceIPv4 == None:
+        return HttpResponse(f"Could not find instance {instance}",status=404)
+
+
+    return HttpResponse(instanceIPv4)
 
 
 
@@ -450,7 +480,8 @@ def shardInstance(request):
     (GET) /api/version/shard_download/<queryString> → Downloads a file from a shard instance
 	Parameters:
 		signature
-		check → Used to check if a file exist 
+		check → Used to check if a file exist. Will only return the response not the file
+		internal → Bypass any access control checks : used for internal downloads 
 	Headers: 
 		SHARD_KEY
 	Responses:
@@ -496,13 +527,17 @@ def shardDownload(request,queryString):
         response['Last-Updated'] = last_updated
         response['Content-Disposition'] = "attachment; filename=%s" % filename
         return response
+    
+    
 
     #check if the file is public
     storedFileObject = storedFile.objects.get(filename=filename)
     if storedFileObject.public:
         return sendFile(filename,storedFileObject.lastUpdated())
 
-
+    #check if internal is defined
+    if "internal" in request.GET: return sendFile(filename,storedFileObject.lastUpdated())
+    
     # check if the signature is not null and correct 
     if signature != None and presignedURL.objects.filter(signature=signature).exists():
 
