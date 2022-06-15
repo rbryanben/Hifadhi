@@ -94,16 +94,19 @@ def cache(request):
     
     #check if the SHARD_KEY is correct
     if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
-    
+ 
     #check if priority is present
     if "priority" not in request.POST: return HttpResponse("Missing parameter priority",status=400)
-
+    priority = request.POST.get("priority")
     #check if the query string is defined 
     if "query_string" not in request.POST: return HttpResponse("Missing parameter query_string",status=400)
-    
+    queryString = request.POST.get("query_string")
     #parse query string 
-    instance, filename = queryParser.parse(request.POST.get("query_string"))
-
+    instance, filename = queryParser.parse(queryString)
+    
+    #check if this is the instance, cause you can download a file you own 
+    if os.environ.get("INSTANCE_NAME") == instance: return HttpResponse("Owns the file")
+ 
 
     #check if instance is in shard 
     if "GOSSIP_INSTANCE" not in os.environ: return HttpResponse("Shard Retrival Failure",status=500)
@@ -130,8 +133,48 @@ def cache(request):
     if instanceIPv4 == None:
         return HttpResponse(f"Could not find instance {instance}",status=404)
 
+    # get the file
+    with requests.get(f"http://{instanceIPv4}/api/v1/shard_download/{queryString}?internal=true",stream=True,headers={"SHARD-KEY":os.environ.get("SHARD_KEY")}) as stream:
+        
+        #lamda function to write the file and then send the file 
+        def writeFile(queryString,stream):
+            with open(f"./Storage/Temp/{queryString}","wb") as cacheFile:
+                for chunk in stream.iter_content(chunk_size=8192):
+                    cacheFile.write(chunk)
+            stream.close()
 
-    return HttpResponse(instanceIPv4)
+            #create or update the record for when the file was cached
+            if cachedFile.objects.filter(fileQueryName=queryString).exists(): 
+                cachedFile.objects.get(fileQueryName=queryString).update(stream.headers.get("content-length"))
+            else:
+                cachedFileRecord = cachedFile(fileQueryName=queryString,priority=priority,public=False,size=int(stream.headers.get("content-length")))
+                cachedFileRecord.save()
+
+        #failed to get the file 
+        if stream.status_code != 200: return HttpResponse(stream.text,status=stream.status_code)
+            
+        #got the file
+        stream.raise_for_status()
+        
+        #file does not exist in the cache then write the file
+        if queryString not in os.listdir("./Storage/Temp/"):
+            writeFile(queryString,stream)
+            
+        
+        #but if file exists in the cache
+        #check if the cached file is still valid by checking if the cached dates match
+        cachedFileTimestamp = cachedFile.objects.get(fileQueryName=queryString).lastUpdated()
+        receivedFileTimestamp = int(stream.headers.get("last-updated"))
+
+        #if hashes do not match rewrite the file and send the file 
+        if receivedFileTimestamp > cachedFileTimestamp : writeFile(queryString,stream)
+
+        #close the stream and send the cached file 
+        stream.close() 
+
+
+
+    return HttpResponse(f"Cached file {queryString} on instance {os.environ.get('INSTANCE_NAME')}")
 
 
 
@@ -537,7 +580,7 @@ def shardDownload(request,queryString):
 
     #check if internal is defined
     if "internal" in request.GET: return sendFile(filename,storedFileObject.lastUpdated())
-    
+
     # check if the signature is not null and correct 
     if signature != None and presignedURL.objects.filter(signature=signature).exists():
 
@@ -744,23 +787,45 @@ def shardCache(request):
     # Parse the queryString
     instance, filename = queryParser.parse(queryString)
 
-    # Check if the file exists 
-    if os.environ.get("INSTANCE_NAME") == instance and not storedFile.objects.filter(filename=filename).exists():
-        return HttpResponse(f"Does not exist {filename} on instance {instance}",status=404)
-    
-    # Check if the instance is registered 
-    if not registeredInstance.objects.filter(instance_name=instance).exists():
-        return HttpResponse(f"Could not find instance {instance}",status=404)
-    
-    # Check if the file exists on that instance
-    instanceIPv4 = registeredInstance.objects.get(instance_name=instance).ipv4
-    with requests.get(f"http://{instanceIPv4}/api/v1/shard_download/{queryString}?check=true",headers={"SHARD-KEY":os.environ.get("SHARD_KEY")}) as resp:
-        if resp.status_code != 200: return HttpResponse(resp.text,resp.status_code)
-        
-    # Send request to cache the file on registered instances 
+   
+    # Instance is this one 
+    if os.environ.get("INSTANCE_NAME") == instance:
+        #check if the file exists
+        if not storedFile.objects.filter(filename=filename).exists():
+            return HttpResponse(f"Does not exist {filename} on instance {instance}",status=404)
+    # Instance is not this one
+    else:
+        #check if the instance is registered
+        if not registeredInstance.objects.filter(instance_name=instance).exists():
+            return HttpResponse(f"Could not find instance {instance}",status=404)
 
+        #check if the file exists on that instance 
+        instanceIPv4 = registeredInstance.objects.get(instance_name=instance).ipv4
+        try:
+            with requests.get(f"http://{instanceIPv4}/api/v1/shard_download/{queryString}?check=true",headers={"SHARD-KEY":os.environ.get("SHARD_KEY")}) as resp:
+                if resp.status_code != 200: return HttpResponse(resp.text,resp.status_code)
+        except:
+            return HttpResponse(f"Network error finding instance",status=500)
 
-        
-    return HttpResponse(instanceIPv4)
+    # Send request to cache the file on registered instances
+    cachedOn = []
+
+    #headers and parameters 
+    headers = {'SHARD-KEY': '2022RBRYANBEN',}
+    files = {
+        'priority': (None, priority),
+        'query_string': (None, queryString),
+    }
+
+    #cache on other instances 
+    for instance in registeredInstance.objects.all():
+        try:
+            response = requests.post(f'http://{instance.ipv4}/api/v1/cache', headers=headers, files=files)
+            if response.status_code == 200: cachedOn.append([instance.instance_name,"SUCCESS"])
+            print(response.text)
+        except Exception as e:
+            cachedOn.append([instance.instance_name,f"FAILED -> {e}"])
+
+    return HttpResponse(json.dumps(cachedOn))
 
 
