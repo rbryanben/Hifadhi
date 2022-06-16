@@ -8,7 +8,7 @@ from wsgiref.util import FileWrapper
 from django.http import HttpResponse, StreamingHttpResponse
 import Main.urls as Startup
 import requests
-from Shared.Util.bucket import range_re, RangeFileWrapper, registerToInstance
+from Shared.Util.bucket import get_client_ip, range_re, RangeFileWrapper, registerToInstance
 from Shared.models import cachedFile, storedFile
 
 
@@ -39,8 +39,11 @@ def retriveFromShard(request,instance,filename,queryString, signature=None):
     if instanceIPv4 == None:
         return HttpResponse(f"Could not find instance {instance}",status=404)
     
+    #get the client ipv4 
+    clientIPv4 = get_client_ip(request)
+
     # get the file
-    with requests.get(f"http://{instanceIPv4}/api/v1/shard_download/{queryString}?signature={signature}",stream=True,headers={"SHARD-KEY":os.environ.get("SHARD_KEY")}) as stream:
+    with requests.get(f"http://{instanceIPv4}/api/v1/shard_download/{queryString}?signature={signature}",stream=True,headers={"SHARD-KEY":os.environ.get("SHARD_KEY"),"HTTP-X-FORWARDED-FOR":clientIPv4}) as stream:
         
         #lamda function to send the file to the client as a stream
         def sendStream(path):

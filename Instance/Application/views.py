@@ -261,7 +261,7 @@ def download(request,queryString):
 """
 @api_view(['GET',])
 def stream(request,queryString):
-     # Get Signature
+    # Get Signature
     signature = request.GET.get("signature") if "signature" in request.GET else None
 
     # Parse the queryString
@@ -533,6 +533,8 @@ def shardInstance(request):
 """
 @api_view(['GET',])
 def shardDownload(request,queryString):
+    clientIp = request.headers.get("Http-X-Forwarded-For")
+
     #check if the SHARD_KEY is defined in the enviroment variables
     if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
     
@@ -596,6 +598,18 @@ def shardDownload(request,queryString):
        
         #delete the record
         signatureRecord.delete() 
+
+    #check if there is ipv4 access to that file
+    if ipv4Access.objects.filter(ipv4=clientIp).exists():
+        accessRecord = ipv4Access.objects.get(ipv4=clientIp)
+        
+        utc = pytz.UTC
+        current_time = datetime.now().replace(tzinfo=utc)
+        expiration_time = accessRecord.expires
+        if (current_time < expiration_time): return sendFile(filename,storedFileObject.lastUpdated())
+       
+        #delete the record
+        accessRecord.delete()
 
     return HttpResponse(f"Access denied for file {filename} from instance {instance}",status=401)
 
