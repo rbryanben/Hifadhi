@@ -16,6 +16,8 @@
     - Delete ipv4 access with invalid key
     - Delete ipv4 with missing parameters
     - Delete ipv4 access
+    - One to one signature access 
+    - One to one ipv4 access 
 """
 from unittest import result
 from django.test import TestCase
@@ -31,11 +33,18 @@ class testAccessControl(TestCase):
             HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))
         self.assertEqual(result.status_code,200)
 
+        #upload a second private file for cross checking One to One access 
+        result = self.client.post("/api/v1/store",{"file":self.file,"filename":"rex_the_dog_second.jpg","mode":"private","override":"true"},
+            HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))
+
+        self.assertEqual(result.status_code,200)
+
         #upload a public file
         result = self.client.post("/api/v1/store",{"file":self.file,"filename":"rex_the_dog_public.jpg","override":"true"},
             HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))    
         self.assertEqual(result.status_code,200)
         return
+
     """
         Obtain signature without SHARD-KEY
     """
@@ -207,7 +216,7 @@ class testAccessControl(TestCase):
 
         self.assertEqual(result.status_code,400)
     
-    """
+    """5
         Delete ipv4 access
     """
     def testDeleteIPv4(self):
@@ -221,3 +230,27 @@ class testAccessControl(TestCase):
             body={"ipv4":"127.0.0.1"},HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))
 
         #self.assertEqual(result.status_code,200)
+
+    """
+        One to one signature access 
+    """
+    def testOneToOneSignatureAccess(self):
+        #generate sigature for the first file  
+        result = self.client.get(f"/api/v1/presign/{os.environ.get('INSTANCE_NAME')}@rex_the_dog.jpg",{"duration":60}
+            ,HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))
+
+        self.assertEqual(result.status_code,200)
+        
+        #Signature
+        fileOneSignature = result.content.decode("utf8")
+        signatureOnly = fileOneSignature.split("?")[1]
+
+        #check the signature works 
+        signatureWorksResult = self.client.get(f'/api/v1/stream/{os.environ.get("INSTANCE_NAME")}@rex_the_dog.jpg?{signatureOnly}')
+        self.assertEqual(signatureWorksResult.status_code,200)
+
+   
+
+        signatureWorksResult = self.client.get(f"/api/v1/stream/{os.environ.get('INSTANCE_NAME')}@rex_the_dog_second.jpg?{signatureOnly}")
+        self.assertEqual(signatureWorksResult.status_code,401)
+

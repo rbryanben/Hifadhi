@@ -201,6 +201,9 @@ def download(request,queryString):
     if not storedFile.objects.filter(filename=filename).exists(): 
         return HttpResponse(f"Does not exist {filename} on instance {instance}",status=404)
 
+    #file to send after checking authentication
+    file = storedFile.objects.get(filename=filename)
+
     #method to send the file as to avoid repition
     def sendFile(filename):
         file_path = f'./Storage/Local/{filename}'
@@ -216,11 +219,11 @@ def download(request,queryString):
         return response
 
     #check if the file is public
-    if storedFile.objects.get(filename=filename).public: return sendFile(filename)
+    if file.public: return sendFile(filename)
 
 
     #check if the signature is not null and correct 
-    if signature != None and presignedURL.objects.filter(signature=signature).exists():
+    if signature != None and presignedURL.objects.filter(signature=signature,file=file).exists():
 
         #check if the signature has not exipred 
         signatureRecord = presignedURL.objects.get(signature=signature)
@@ -235,7 +238,7 @@ def download(request,queryString):
     
     #check for ipv4Access
     clientIP = get_client_ip(request)
-    if ipv4Access.objects.filter(ipv4=clientIP).exists():
+    if ipv4Access.objects.filter(ipv4=clientIP,file=file).exists():
         accessRecord = ipv4Access.objects.get(ipv4=clientIP)
         
         utc = pytz.UTC
@@ -275,6 +278,9 @@ def stream(request,queryString):
     if not storedFile.objects.filter(filename=filename).exists(): 
         return HttpResponse(f"Does not exist {filename} on instance {instance}",status=404)
 
+    #The file to stream
+    file = storedFile.objects.get(filename=filename)
+
     #function to stream a file 
     def streamFile(filename):
         path = f'./Storage/Local/{filename}'
@@ -303,8 +309,8 @@ def stream(request,queryString):
     if storedFile.objects.get(filename=filename).public:
         return streamFile(filename)
     
-    #check if the signature is not null and correct 
-    if signature != None and presignedURL.objects.filter(signature=signature).exists():
+    #check if the signature is not null and correct 1
+    if signature != None and presignedURL.objects.filter(signature=signature,file=file).exists():
 
         #check if the signature has not exipred 
         signatureRecord = presignedURL.objects.get(signature=signature)
@@ -319,7 +325,7 @@ def stream(request,queryString):
 
     #check for ipv4Access
     clientIP = get_client_ip(request)
-    if ipv4Access.objects.filter(ipv4=clientIP).exists():
+    if ipv4Access.objects.filter(ipv4=clientIP,file=file).exists():
         accessRecord = ipv4Access.objects.get(ipv4=clientIP)
         
         utc = pytz.UTC
