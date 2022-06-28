@@ -249,8 +249,24 @@ class testAccessControl(TestCase):
         signatureWorksResult = self.client.get(f'/api/v1/stream/{os.environ.get("INSTANCE_NAME")}@rex_the_dog.jpg?{signatureOnly}')
         self.assertEqual(signatureWorksResult.status_code,200)
 
-   
-
         signatureWorksResult = self.client.get(f"/api/v1/stream/{os.environ.get('INSTANCE_NAME')}@rex_the_dog_second.jpg?{signatureOnly}")
         self.assertEqual(signatureWorksResult.status_code,401)
+
+    """
+        One to one ipv4 access 
+    """
+    def testOneToOneIPv4Access(self):
+        #generate IPv4 access for file one 
+        result = self.client.get(f"/api/v1/ipv4access/{os.environ.get('INSTANCE_NAME')}@rex_the_dog.jpg",{"duration":60
+            ,"ipv4":"127.0.0.1"},HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))
+            
+        self.assertEqual(result.content.decode("utf8"),"127.0.0.1") #200
+
+        #check if ipv4 access is working for the first file
+        fileOneQueryResult = self.client.get(f"/api/v1/download/{os.environ.get('INSTANCE_NAME')}@rex_the_dog.jpg")
+        self.assertEqual(fileOneQueryResult.status_code,200)
+
+        #check if ipv4 acces is not working for the second file 
+        fileOneQueryResult = self.client.get(f"/api/v1/download/{os.environ.get('INSTANCE_NAME')}@rex_the_dog_second.jpg")
+        self.assertEqual(fileOneQueryResult.status_code,401)
 
