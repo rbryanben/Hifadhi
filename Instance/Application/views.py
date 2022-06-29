@@ -239,7 +239,7 @@ def download(request,queryString):
     #check for ipv4Access
     clientIP = get_client_ip(request)
     if ipv4Access.objects.filter(ipv4=clientIP,file=file).exists():
-        accessRecord = ipv4Access.objects.get(ipv4=clientIP)
+        accessRecord = ipv4Access.objects.get(ipv4=clientIP,file=file)
         
         utc = pytz.UTC
         current_time = datetime.now().replace(tzinfo=utc)
@@ -326,7 +326,7 @@ def stream(request,queryString):
     #check for ipv4Access
     clientIP = get_client_ip(request)
     if ipv4Access.objects.filter(ipv4=clientIP,file=file).exists():
-        accessRecord = ipv4Access.objects.get(ipv4=clientIP)
+        accessRecord = ipv4Access.objects.get(ipv4=clientIP,file=file)
         
         utc = pytz.UTC
         current_time = datetime.now().replace(tzinfo=utc)
@@ -609,7 +609,7 @@ def shardDownload(request,queryString):
 
     #check if there is ipv4 access to that file
     if ipv4Access.objects.filter(ipv4=clientIp,file=file).exists():
-        accessRecord = ipv4Access.objects.get(ipv4=clientIp)
+        accessRecord = ipv4Access.objects.filter(ipv4=clientIp,file=file)[0]
         
         utc = pytz.UTC
         current_time = datetime.now().replace(tzinfo=utc)
@@ -718,7 +718,8 @@ def IPv4Access(request,queryString):
         #if file is public dont generate simply return the query string
         if file.public: return HttpResponse(ipv4,status=200)
 
-        #create the IPv4 Access 
+        #create the IPv4 Access after deleting all previous one 
+        ipv4Access.objects.filter(ipv4=ipv4,file=file).delete()
         access = ipv4Access(ipv4=ipv4,created=datetime.now()+timedelta(seconds=0),
             file=file,expires=datetime.now()+timedelta(seconds=int(duration)))
         access.save()
