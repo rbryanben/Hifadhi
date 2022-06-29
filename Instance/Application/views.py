@@ -526,7 +526,7 @@ def shardInstance(request):
 
 
 """
-    (GET) /api/version/shard_download/<queryString> → Downloads a file from a shard instance
+    (GET) /api/version/shard_download/<queryString> → Used to return files for other instances 
 	Parameters:
 		signature
 		check → Used to check if a file exist. Will only return the response not the file
@@ -559,6 +559,8 @@ def shardDownload(request,queryString):
     #check if the file exists
     if not storedFile.objects.filter(filename=filename).exists(): 
         return HttpResponse(f"Does not exist {filename} on instance {instance}",status=404)
+    
+    file = storedFile.objects.get(filename=filename)
 
     #check parameter is present
     if "check" in request.GET:
@@ -590,7 +592,7 @@ def shardDownload(request,queryString):
     if "internal" in request.GET: return sendFile(filename,storedFileObject.lastUpdated())
 
     # check if the signature is not null and correct 
-    if signature != None and presignedURL.objects.filter(signature=signature).exists():
+    if signature != None and presignedURL.objects.filter(signature=signature,file=file).exists():
 
         #check if the signature has not exipred 
         signatureRecord = presignedURL.objects.get(signature=signature)
@@ -606,7 +608,7 @@ def shardDownload(request,queryString):
         signatureRecord.delete() 
 
     #check if there is ipv4 access to that file
-    if ipv4Access.objects.filter(ipv4=clientIp).exists():
+    if ipv4Access.objects.filter(ipv4=clientIp,file=file).exists():
         accessRecord = ipv4Access.objects.get(ipv4=clientIp)
         
         utc = pytz.UTC
