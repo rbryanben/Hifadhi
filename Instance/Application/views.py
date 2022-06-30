@@ -156,26 +156,31 @@ def cache(request):
         #got the file
         stream.raise_for_status()
         
-        #file does not exist in the cache then write the file
-        if queryString not in os.listdir("./Storage/Temp/"):
+        #cache record does not exist then write the file 
+        if not cachedFile.objects.filter(fileQueryName=queryString).exists():
             writeFile(queryString,stream)
-            
         
+        
+        cacheRecord = cachedFile.objects.get(fileQueryName=queryString)
+
         #but if file exists in the cache
         #check if the cached file is still valid by checking if the cached dates match
-        cachedFileTimestamp = cachedFile.objects.get(fileQueryName=queryString).lastUpdated()
+        cachedFileTimestamp = cacheRecord.lastUpdated()
         receivedFileTimestamp = int(stream.headers.get("last-updated"))
 
         #if hashes do not match rewrite the file and send the file 
         if receivedFileTimestamp > cachedFileTimestamp : writeFile(queryString,stream)
 
-        #close the stream and send the cached file 
+        #Update the priority 
+        cacheRecord.priority = priority
+        cacheRecord.save()
+
+        #close the stream  
         stream.close() 
 
 
 
     return HttpResponse(f"Cached file {queryString} on instance {os.environ.get('INSTANCE_NAME')}")
-
 
 
 """
@@ -252,7 +257,6 @@ def download(request,queryString):
     
     #denied
     return HttpResponse(f"Access denied for file {filename} from instance {instance}",status=401)
-
 
 
 """
@@ -478,6 +482,7 @@ def registeredInstances(request):
         status=200
     )
 
+
 """"
     (GET) /api/version/health -> returns the health of an instance
 
@@ -492,6 +497,7 @@ def health(request):
     }
 
     return HttpResponse(json.dumps(response))
+
 
 """
     (POST) /api/version/shard_instance →  Queries the IPv4 of an instance from the gossip instance
@@ -622,7 +628,6 @@ def shardDownload(request,queryString):
     return HttpResponse(f"Access denied for file {filename} from instance {instance}",status=401)
 
 
-
 """
     (GET) /api/version/pre-sign/queryString → request for a presigned URL 
 	headers(SHARD_KEY)
@@ -749,6 +754,7 @@ def IPv4Access(request,queryString):
 
         return HttpResponse(f"Revoked Access To {queryString} from IP Address {ipv4}")
 
+
 """
     (DELETE) /api/version/presign → delete presigned URL access 
 	headers(SHARD_KEY)
@@ -840,7 +846,7 @@ def shardCache(request):
         'query_string': (None, queryString),
     }
 
-    #cache on other instances 
+    #cache on other instances (Turn this to async)
     for instance in registeredInstance.objects.all():
         try:
             response = requests.post(f'http://{instance.ipv4}/api/v1/cache', headers=headers, files=files)
