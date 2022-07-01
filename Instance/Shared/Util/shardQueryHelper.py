@@ -1,6 +1,7 @@
 """
     Handle Shard Retrival Operations
 """
+from genericpath import exists
 from importlib.resources import path
 import mimetypes
 import os
@@ -9,31 +10,37 @@ from django.http import HttpResponse, StreamingHttpResponse
 import Main.urls as Startup
 import requests
 from Shared.Util.bucket import get_client_ip, range_re, RangeFileWrapper, registerToInstance
-from Shared.models import cachedFile, storedFile
+from Shared.models import cachedFile, registeredInstance
 
 
 def retriveFromShard(request,instance,filename,queryString, signature=None):
     """
-        Get the instance Ipv4 
+        Get the instance Ipv4 from the GOSSIP instance or from registered instances 
     """
-    if "GOSSIP_INSTANCE" not in os.environ: return HttpResponse("Shard Retrival Failure",status=500)
-
-    #function to get the IPv4 from list returned on registration
-    def getInstanceIpv4(instance, Startup):
-        if instance in Startup.knownInstances:
-            return Startup.knownInstances.get(instance)['ipv4']
-        return None
-
-    #get the instance ipv4
-    instanceIPv4 = getInstanceIpv4(instance,Startup)
+    if "GOSSIP_INSTANCE" not in os.environ:
+        # Not a gossip instance and not registered on any shard return Failure 
+        if  registeredInstance.objects.all().count() < 1: return HttpResponse("Shard Retrival Failure",status=500)
+        # Set the ipv4
+        instanceIPv4 = registeredInstance.objects.get(instance_name=instance).ipv4 if registeredInstance.objects.filter(instance_name=instance).exists() else None
     
-    #if instanceIPv4 is None then re-register to get an updated list of instances 
-    if instanceIPv4 == None:
-            gossip_instance_ip = os.environ.get("GOSSIP_INSTANCE")
-            registerToInstance(gossip_instance_ip)
+    else:
+        #function to get the IPv4 from list returned on registration
+        def getInstanceIpv4(instance, Startup):
+            if instance in Startup.knownInstances:
+                return Startup.knownInstances.get(instance)['ipv4']
+            return None
 
-    #get the IPv4 from the updated list
-    instanceIPv4 = getInstanceIpv4(instance,Startup)
+        #get the instance ipv4
+        instanceIPv4 = getInstanceIpv4(instance,Startup)
+        
+        #if instanceIPv4 is None then re-register to get an updated list of instances 
+        if instanceIPv4 == None:
+                gossip_instance_ip = os.environ.get("GOSSIP_INSTANCE")
+                registerToInstance(gossip_instance_ip)
+
+        #get the IPv4 from the updated list
+        instanceIPv4 = getInstanceIpv4(instance,Startup)
+
     
     # if instanceIPv4 is still Null update that the instance could not be found in the Shard
     if instanceIPv4 == None:
