@@ -1,10 +1,12 @@
 """
     Handle Shard Retrival Operations
 """
-from genericpath import exists
+from concurrent.futures import ThreadPoolExecutor
 from importlib.resources import path
+import json
 import mimetypes
 import os
+from urllib import response
 from wsgiref.util import FileWrapper
 from django.http import HttpResponse, StreamingHttpResponse
 import Main.urls as Startup
@@ -13,6 +15,9 @@ from Shared.Util.bucket import get_client_ip, range_re, RangeFileWrapper, regist
 from Shared.models import cachedFile, registeredInstance
 
 
+"""
+    Retrive file from shard
+"""
 def retriveFromShard(request,instance,filename,queryString, signature=None):
     """
         Get the instance Ipv4 from the GOSSIP instance or from registered instances 
@@ -119,6 +124,65 @@ def retriveFromShard(request,instance,filename,queryString, signature=None):
         #close the stream and send the cached file 
         stream.close()
         return sendStream(f"./Storage/Temp/{queryString}") 
+
+
+"""
+    Delete file on other instances helper 
+"""
+def deleteFileOnOtherInstances(queryString):
+    # Instance is the gossip instance
+    if "GOSSIP_INSTANCE" not in os.environ:
+        endpoints = [{
+                "ipv4" : instance.ipv4,
+                "name" : instance.instance_name,
+                "query_string" : queryString
+            } for instance in registeredInstance.objects.all()]
+        
+    else:
+        # re-register
+        gossip_instance_ip = os.environ.get("GOSSIP_INSTANCE")
+        registerToInstance(gossip_instance_ip)
+        endpoints = [{
+                "ipv4" : Startup.knownInstances[instance]["ipv4"],
+                "name" : instance,
+                "query_string": queryString
+            } for instance in Startup.knownInstances]
+
+    response = []
+
+    with ThreadPoolExecutor() as exec:
+        res = exec.map(deleteFromCache,endpoints)
+        for result in res: 
+            response.append(result)
+
+    return HttpResponse(json.dumps(response))
+
+
+"""
+    Function to send a delete cache request
+"""
+def deleteFromCache(params):
+    # Headers and form data
+    headers = {'SHARD-KEY': '2022RBRYANBEN',}
+    files = {
+        'query_string': (None, params["query_string"]),
+    }
+
+    # Send the requests
+    try:
+        result = requests.post(f'http://{params["ipv4"]}/api/v1/delete_cache', headers=headers, files=files,timeout=5)
+        status = result.status_code
+    except:
+        status = "Connection Failed"
+
+    # Return the result 
+    return {
+        params["name"]: {
+            "ipv4" : params["ipv4"],
+            "status" : status
+        }
+    }
+
 
         
         

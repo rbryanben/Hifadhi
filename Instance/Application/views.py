@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from unittest import result
 from django.http import HttpResponse, StreamingHttpResponse
 from rest_framework.decorators import api_view
 from Shared.storage import store as storeFile, delete
@@ -885,6 +884,7 @@ def deleteFile(request):
     queryString = request.POST.get("query_string")
     instance, filename = queryParser.parse(queryString)
 
+
     # Instance is this one
     if os.environ.get("INSTANCE_NAME") == instance:
         #Check if the file exists 
@@ -896,6 +896,13 @@ def deleteFile(request):
 
         # Delete the record 
         storedFile.objects.filter(filename=filename).delete()
+
+        # Instance not in shard and is not gossip
+        if registeredInstance.objects.all().count() == 0 and (Startup.registeredOnGossip == [] or Startup.registeredOnGossip[0] == False):
+            return HttpResponse(queryString)
+        
+        # Delete on other instances 
+        return shardQueryHelper.deleteFileOnOtherInstances(queryString)
         
 
     return  HttpResponse()
