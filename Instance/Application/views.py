@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest import result
 from django.http import HttpResponse, StreamingHttpResponse
 from rest_framework.decorators import api_view
 from Shared.storage import store as storeFile, cache as cacheFile
@@ -12,7 +13,7 @@ import Main.urls as startUp
 import os,json,time,requests,psutil,uuid,pytz,mimetypes
 from Shared.Util.bucket import range_re, RangeFileWrapper, registerToInstance
 import Main.urls as Startup
-
+from concurrent.futures import ThreadPoolExecutor
 
 """
     (POST) /api/version/store → Stores a file to an instance
@@ -839,22 +840,44 @@ def shardCache(request):
     # Send request to cache the file on registered instances
     cachedOn = []
 
-    #headers and parameters 
-    headers = {'SHARD-KEY': '2022RBRYANBEN',}
-    files = {
-        'priority': (None, priority),
-        'query_string': (None, queryString),
-    }
-
     #cache on other instances (Turn this to async)
-    for instance in registeredInstance.objects.all():
-        try:
-            response = requests.post(f'http://{instance.ipv4}/api/v1/cache', headers=headers, files=files)
-            if response.status_code == 200: cachedOn.append([instance.instance_name,"SUCCESS"])
-            print(response.text)
-        except Exception as e:
-            cachedOn.append([instance.instance_name,f"FAILED -> {e}"])
+    instances = [{
+        "ipv4": instance.ipv4,
+        "priority" : priority,
+        "query_string": queryString,
+        "name" : instance.instance_name
+    } for instance in registeredInstance.objects.all()]
+
+    with ThreadPoolExecutor() as ex:
+        res = ex.map(sendCacheRequest,instances)
+        for result in res: 
+            cachedOn.append(result)
+
 
     return HttpResponse(json.dumps(cachedOn))
+
+
+def sendCacheRequest(params):
+    # Headers and form data
+    headers = {'SHARD-KEY': '2022RBRYANBEN',}
+    files = {
+        'priority': (None, params["priority"]),
+        'query_string': (None, params["query_string"]),
+    }
+
+    # Send the requests
+    try:
+        result = requests.post(f'http://{params["ipv4"]}/api/v1/cache', headers=headers, files=files)
+        status = result.status_code
+    except:
+        status = "Connection Failed"
+
+    # Return the result 
+    return {
+        params["name"]: {
+            "ipv4" : params["ipv4"],
+            "status" : status
+        }
+    }
 
 

@@ -19,6 +19,7 @@ import os
 from Shared.Util.bucket import registerToInstance
 import time
 
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/',include("Application.urls")), #API Urls
