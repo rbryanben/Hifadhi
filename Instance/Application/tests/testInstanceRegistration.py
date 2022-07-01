@@ -1,6 +1,7 @@
 from email import header
 import json
 from django.test import TestCase
+import os
 
 class testInstanceRegistration(TestCase):
 
@@ -40,16 +41,16 @@ class testInstanceRegistration(TestCase):
     
     def testInstanceRegistration(self):
         #register Mars
-        response = self.client.post("/api/v1/register",self.instance_mars,content_type="application/json",HTTP_SHARD_KEY="2022RBRYANBEN")
+        response = self.client.post("/api/v1/register",self.instance_mars,content_type="application/json",HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))
         self.assertEqual(response.status_code,200)
         
         
         #register Pluto
-        response = self.client.post('/api/v1/register',self.instance_pluto,content_type="application/json",HTTP_SHARD_KEY="2022RBRYANBEN")
+        response = self.client.post('/api/v1/register',self.instance_pluto,content_type="application/json",HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))
         self.assertEqual(response.status_code,200)
 
         #register Neptune 
-        response = self.client.post('/api/v1/register',self.instance_neptune,content_type="application/json",HTTP_SHARD_KEY="2022RBRYANBEN")
+        response = self.client.post('/api/v1/register',self.instance_neptune,content_type="application/json",HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))
         self.assertEqual(response.status_code,200)
 
         #check if all the instances where registered from the last response

@@ -122,3 +122,29 @@ def sha256sum(filename):
         while n := f.readinto(mv):
             h.update(mv[:n])
     return h.hexdigest()
+
+"""
+    Function to send a request to another instance to cache a file 
+"""
+def sendCacheRequest(params):
+    # Headers and form data
+    headers = {'SHARD-KEY': '2022RBRYANBEN',}
+    files = {
+        'priority': (None, params["priority"]),
+        'query_string': (None, params["query_string"]),
+    }
+
+    # Send the requests
+    try:
+        result = requests.post(f'http://{params["ipv4"]}/api/v1/cache', headers=headers, files=files)
+        status = result.status_code
+    except:
+        status = "Connection Failed"
+
+    # Return the result 
+    return {
+        params["name"]: {
+            "ipv4" : params["ipv4"],
+            "status" : status
+        }
+    }

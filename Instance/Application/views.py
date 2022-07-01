@@ -2,13 +2,13 @@ from datetime import datetime, timedelta
 from unittest import result
 from django.http import HttpResponse, StreamingHttpResponse
 from rest_framework.decorators import api_view
-from Shared.storage import store as storeFile, cache as cacheFile
+from Shared.storage import store as storeFile, delete
 from Shared.models import storedFile, registeredInstance, cachedFile, presignedURL, ipv4Access
 from django.db.models import Sum
 from Shared.Util import queryParser
 from Shared.Util import shardQueryHelper
 from wsgiref.util import FileWrapper
-from Shared.Util.bucket import get_client_ip, range_re, RangeFileWrapper, sha256sum
+from Shared.Util.bucket import get_client_ip, range_re, RangeFileWrapper, sendCacheRequest
 import Main.urls as startUp
 import os,json,time,requests,psutil,uuid,pytz,mimetypes
 from Shared.Util.bucket import range_re, RangeFileWrapper, registerToInstance
@@ -857,27 +857,45 @@ def shardCache(request):
     return HttpResponse(json.dumps(cachedOn))
 
 
-def sendCacheRequest(params):
-    # Headers and form data
-    headers = {'SHARD-KEY': '2022RBRYANBEN',}
-    files = {
-        'priority': (None, params["priority"]),
-        'query_string': (None, params["query_string"]),
-    }
+"""
+    (POST) /api/version/delete → delete file 
+	    headers(SHARD_KEY)
+        Parameters:
+            query_string: file cache query string
+        Responses:
+            200 → Success (Query String Attached)
+            * 
+"""
+@api_view(['POST',])
+def deleteFile(request):
 
-    # Send the requests
-    try:
-        result = requests.post(f'http://{params["ipv4"]}/api/v1/cache', headers=headers, files=files)
-        status = result.status_code
-    except:
-        status = "Connection Failed"
+    #check if the SHARD_KEY is defined in the enviroment variables
+    if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
+    
+    #check shard key is specified
+    if "SHARD-KEY" not in request.headers: return HttpResponse("Missing Header SHARD-KEY ",status=400)
 
-    # Return the result 
-    return {
-        params["name"]: {
-            "ipv4" : params["ipv4"],
-            "status" : status
-        }
-    }
+    #check if the SHARD_KEY is correct
+    if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
 
+    # Check if query string is defined
+    if "query_string" not in request.POST: return HttpResponse("Missing parameter query_string",status=400)
 
+    # Parse the query string
+    queryString = request.POST.get("query_string")
+    instance, filename = queryParser.parse(queryString)
+
+    # Instance is this one
+    if os.environ.get("INSTANCE_NAME") == instance:
+        #Check if the file exists 
+        if not storedFile.objects.filter(filename=filename).exists():
+            return HttpResponse(f"Does not exist {filename} on instance {instance}",status=404)
+
+        # Delete the file
+        delete(filename)
+
+        # Delete the record 
+        storedFile.objects.filter(filename=filename).delete()
+        
+
+    return  HttpResponse()

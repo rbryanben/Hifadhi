@@ -15,4 +15,5 @@ urlpatterns = [
     path('v1/presign/<str:queryString>',preSignedAccess,name="Obtains a pre-signed url"),
     path('v1/ipv4access/<str:queryString>',IPv4Access,name="Gives IPv4 Access to a file for some time"),
     path('v1/shard_cache',shardCache,name="Instructs all instances to cache a file"),
+    path('v1/delete',deleteFile,name="Delete File"),
 ]

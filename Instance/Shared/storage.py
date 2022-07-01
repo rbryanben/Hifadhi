@@ -100,6 +100,12 @@ def cache(file,fileQueryName,public=True,priority=0):
     return [True,fileQueryName]
 
 
+"""
+    delete(filename) -> Deletes a file from the storage directory
+"""
+def delete(filename):
+    if filename in os.listdir(localStorage):
+        res = os.remove(f"{localStorage}/{filename}")
 
 """
     Asset Invalidation -> Checks if the memory allocated to cache is not full. If full finds a file remove

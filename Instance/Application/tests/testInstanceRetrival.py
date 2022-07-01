@@ -1,9 +1,10 @@
 from django.test import TestCase
+import os
 import json
 
 class testInstanceRetrival(TestCase):
     def setUp(self) -> None:
-        self.SHARD_KEY = "2022RBRYANBEN"
+        self.SHARD_KEY = os.environ.get("SHARD_KEY")
         
         #register instances
         self.instance_mars = {
@@ -29,11 +30,11 @@ class testInstanceRetrival(TestCase):
         }
 
         #register Mars
-        response = self.client.post("/api/v1/register",self.instance_mars,content_type="application/json",HTTP_SHARD_KEY="2022RBRYANBEN")
+        response = self.client.post("/api/v1/register",self.instance_mars,content_type="application/json",HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))
         self.assertEqual(response.status_code,200)
         
         #register Pluto
-        response = self.client.post('/api/v1/register',self.instance_pluto,content_type="application/json",HTTP_SHARD_KEY="2022RBRYANBEN")
+        response = self.client.post('/api/v1/register',self.instance_pluto,content_type="application/json",HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))
         self.assertEqual(response.status_code,200)
 
 
@@ -46,7 +47,7 @@ class testInstanceRetrival(TestCase):
         self.assertEqual(401,response.status_code)
 
     def testInstanceRetrivalWithValidShardKey(self):
-        response = self.client.get('/api/v1/registered_instances',HTTP_SHARD_KEY="2022RBRYANBEN")
+        response = self.client.get('/api/v1/registered_instances',HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))
         self.assertEqual(200,response.status_code)
         
         instances = json.loads(response.content)
