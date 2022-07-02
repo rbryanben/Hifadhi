@@ -105,5 +105,11 @@ http://localhost:7111/api/v1/stream/Kalahari@video.mp4
 http://localhost:7111/api/v1/download/Kalahari@video.mp4
 ```
   
+  # Access Control
+  
+  Now lets secure our files by putting access control measures. And there are two access control measures we can use <code>Presigned URLs</code> and <code>IPv4 Access</code>. In presigned-urls a unique url is generated for you, which in turn you can give to a client to use. These presigned urls are really long with the aim of making it hard to guess a url as there are 36^256 possibilities. As for IPv4 Access its as simple as giving access to some IP address. Lets upload another video of your choice but this time we will add another body parameter <code>mode</code> which is used to define wheather a file is public or private.
+  
+  # Presigned URLs 
+  
 
   
