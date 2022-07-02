@@ -109,7 +109,90 @@ http://localhost:7111/api/v1/download/Kalahari@video.mp4
   
   Now lets secure our files by putting access control measures. And there are two access control measures we can use <code>Presigned URLs</code> and <code>IPv4 Access</code>. In presigned-urls a unique url is generated for you, which in turn you can give to a client to use. These presigned urls are really long with the aim of making it hard to guess a url as there are 36^256 possibilities. As for IPv4 Access its as simple as giving access to some IP address. Lets upload another video of your choice but this time we will add another body parameter <code>mode</code> which is used to define wheather a file is public or private.
   
+  ```yml
+  - Request: POST
+  - Headers:
+    - SHARD-KEY: Key we defined ealier on as an enviroment variable 
+  - Body (Multipart-form):
+    - file: The file itself 
+    - filename: The name to save the file as
+    - mode: private
+  ```
+  
+  Your request should look something like this
+  ```
+  curl --request POST \
+    --url http://localhost:7111/api/v1/store \
+    --header 'Content-Type: multipart/form-data' \
+    --header 'SHARD-KEY: BasicPassword' \
+    --form 'file=@C:\Users\rbryanben\Videos\another_video.mp4' \
+    --form filename=another_video.mp4 \
+    --form mode=private
+  ```
+  
   # Presigned URLs 
+  
+  A GET request to the path <code>/api/v1/presign/[your_query_string]</code> is used to generate presigned urls. Within the request the parameter <code>duration</code> and the header <code>SHARD-KEY</code> have to be present as defined below.
+  
+  ```yml
+  - Request: GET
+  - Headers:
+    - SHARD-KEY: Key we defined ealier on as an enviroment variable 
+  - Parameters:
+    - duration: Time in seconds the presigned url should remain valid
+  ```
+  
+  Using curl your request should look something like this. It is important to note that you cannot generate a presigned url for a public file. 
+  
+  ```shell
+  curl --request GET \
+    --url 'http://localhost:7111/api/v1/presign/Kalahari@another_video.mp4?duration=60' \
+    --header 'SHARD-KEY:  BasicPassword'
+  ```
+  
+  In return you should get a signed query string that looks like this
+  
+  ```shell
+  Kalahari@another_video.mp4?signature=9cfb765b-58fd-419a-8990-4a9b18ef6ffb5bc47f08-48be-4704-a2a4-648c4a212c3fd662bdb1-1a54-4381-8b81-a451b26e7962181ef282-ea9a-4709-bcb8-63d300bf652e
+  ```
+  
+  Send this string to the path <code>/api/v1/stream</code> to stream the video.
+  ```
+  http://localhost:7111/api/v1/stream/[your_signed_query_string]
+  ```
+  
+  
+  
+  # IPv4 Access 
+  
+  A GET request to the path <code>/api/v1/ipv4access/[your_query_string] </code> is used to grant IPv4 access. Within the request the parameters <code>duration</code>,<code>ipv4</code> and the header <code>SHARD-KEY</code> have to be present as defined by the template below.
+  
+  ```yml
+  - Request: GET
+  - Headers:
+    - SHARD-KEY: Key we defined ealier on as an enviroment variable 
+  - Parameters:
+    - duration: Time in seconds the presigned url should remain valid
+    - ipv4: IP address to give access to 
+  ```
+  
+  Your curl request should look something like this
+  
+  ```
+  curl --request GET \
+    --url 'http://localhost:7111/api/v1/ipv4access/Kalahari@another_video.mp4?duration=60&ipv4=172.17.0.1' \
+    --header 'SHARD-KEY:  BasicPassword'
+  ```
+  
+  You should get the IP address you specified as an indication of success.
+  
+  ```
+  172.17.0.1
+  ```
+  
+  It is important to note that we did not use the IP address 127.0.0.1 and used instead the docker network gateway 172.17.0.1 to grant access. This is because requests to containers come from the network gateway unless you have macvlan setup with the container network. To learn more about how you can use your actual IP read the feature docs on Access Control. Now go ahead and stream the file.
+  
+  
   
 
   
