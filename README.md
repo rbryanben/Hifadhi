@@ -88,3 +88,22 @@ If you did not receive a 200 response with a query string here of the other repo
   - 500 (Internal Server Error): You should not get this
   - 200 (Success): File was uploaded successfully
 ```
+
+# Retrieving Files
+  
+For this you need nothing but a browser. There are two options to retriving a file <code>Stream</code> or <code>Download</code> retrival.
+On streaming the file is returned in small bits and pieces called chunks. Streaming is suitable for video streaming apps where you want to start watching the video 
+immediately and have an option to skip to a certain part, these features which are not present on Download. Download retrival returnes the file faster than Stream.
+Now go ahead and stream the video we uploaded earlier using this link.
+
+```
+http://localhost:7111/api/v1/stream/Kalahari@video.mp4
+```
+  And to download the file simply change <code>stream</code> to <code>download</code> on the url
+  
+```
+http://localhost:7111/api/v1/download/Kalahari@video.mp4
+```
+  
+
+  
