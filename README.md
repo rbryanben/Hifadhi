@@ -192,6 +192,8 @@ http://localhost:7111/api/v1/download/Kalahari@video.mp4
   
   It is important to note that we did not use the IP address 127.0.0.1 and used instead the docker network gateway 172.17.0.1 to grant access. This is because requests to containers come from the network gateway unless you have macvlan setup with the container network. To learn more about how you can use your actual IP read the feature docs on Access Control. Now go ahead and stream the file.
   
+
+  
   
   
 
