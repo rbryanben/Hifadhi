@@ -128,7 +128,8 @@ def deleteFileOnAnotherInstance(queryString,instance):
     instanceIPv4 = getInstanceIPv4(instance)
 
     # Check if IPv4 is not None
-    if instanceIPv4 == None: HttpResponse(f"Could not find instance {instance}",status=404)
+    if instanceIPv4 == None: return HttpResponse(f"Could not find instance {instance}",status=404)
+    print(instanceIPv4)
 
     # Send the requests
     try:
