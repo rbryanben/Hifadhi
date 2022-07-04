@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from django.http import HttpResponse, StreamingHttpResponse
 from rest_framework.decorators import api_view
-from Shared.storage import store as storeFile, delete
+from Shared.storage import store as storeFile, delete, deleteAnyCachedFile
 from Shared.models import storedFile, registeredInstance, cachedFile, presignedURL, ipv4Access
 from django.db.models import Sum
 from Shared.Util import queryParser
@@ -935,3 +935,8 @@ def deleteCached(request):
 
     # Remove any cached files records 
     cachedFile.objects.filter(fileQueryName=queryString).delete()
+
+    # Remove any file if cached
+    deleteAnyCachedFile(queryString)
+
+    return HttpResponse(queryString,status=200)

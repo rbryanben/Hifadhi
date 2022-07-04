@@ -1,6 +1,7 @@
+from doctest import testfile
 from fileinput import filename
 from django.test import TestCase
-from Shared.models import storedFile
+from Shared.models import cachedFile, storedFile
 import os
 
 """
@@ -11,6 +12,7 @@ import os
         - Test valid shard key
         - Test missing query string 
         - Test file does not exist
+        - Test Deletion API
 """
 class testDeletion(TestCase):
     def setUp(self):
@@ -59,6 +61,27 @@ class testDeletion(TestCase):
         res = self.client.post("/api/v1/delete",{"query_string":queryString},HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))
         self.assertEqual(storedFile.objects.filter(filename=self.testFilename).count(),0)
         self.assertEqual(res.status_code,200)
+
+    """
+        Test deletion API
+    """
+    def testDeletionAPI(self):
+        self.testFile.seek(0,0) #reset file 
+        # Add the file to the cache directory 
+        with open("./Storage/Temp/Uranus@dog.jpg","wb") as file:
+            file.write(self.testFile.read())
+
+        # Add the cached file record 
+        cachedFileRecord = cachedFile(fileQueryName="Uranus@dog.jpg")
+        cachedFileRecord.save()
+
+        # Test API
+        resp = self.client.post("/api/v1/delete_cache",{"query_string":"Uranus@dog.jpg"},
+            HTTP_SHARD_KEY=os.environ.get("SHARD_KEY"))
+        
+        self.assertEqual(resp.status_code,200)
+
+
 
 
     
