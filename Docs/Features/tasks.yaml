@@ -6,9 +6,9 @@ Components:
 
 Tasks:
   Instance:
-    - Shard Caching and Invalidation
+    - Deleting
+    - Cache Invalidation
     - Memory Caching
-    - File statistics on hits
   Gossip Instance:
     - Health Checks On Registered Instances  
     - Adapter Connection
@@ -41,10 +41,6 @@ Tasks:
         - Instance
 
 Backlog:
-
-
-Test Errors:
-  - Local folder should be copied as well
 
 After Research:
   - Clean out expired signatures and ipv4Access

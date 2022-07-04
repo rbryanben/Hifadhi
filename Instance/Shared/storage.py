@@ -1,3 +1,4 @@
+from fileinput import filename
 import psutil
 
 """
@@ -11,7 +12,7 @@ import os
 
 # Vars 
 localStorage = './Storage/Local'
-cacheStorage = './Storage/Cache'
+cacheStorage = './Storage/Temp'
 instanceName = os.environ.get("INSTANCE_NAME")
 
 """
@@ -106,6 +107,13 @@ def cache(file,fileQueryName,public=True,priority=0):
 def delete(filename):
     if filename in os.listdir(localStorage):
         res = os.remove(f"{localStorage}/{filename}")
+
+"""
+    delete(cache) -> Deletes a cached file
+"""
+def deleteCachedAnyFile():
+    if filename in os.listdir(cacheStorage):
+        pass
 
 """
     Asset Invalidation -> Checks if the memory allocated to cache is not full. If full finds a file remove

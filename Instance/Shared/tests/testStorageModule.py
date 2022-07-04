@@ -15,7 +15,7 @@ class testStorageModuleTests(TestCase):
         try:
             os.remove("./Storage/Local/banana.txt")
             os.remove("./Storage/Local/banana2.txt")
-            os.remove("./Storage/Cache/sahara@banana.txt")
+            os.remove("./Storage/Temp/sahara@banana.txt")
         except FileNotFoundError:
             pass
 
@@ -99,7 +99,7 @@ class testStorageModuleTests(TestCase):
 
         #Test if the file was saved
         self.testfile.seek(0,0) 
-        with open("./Storage/Cache/sahara@banana.txt","rb") as fileToTest:
+        with open("./Storage/Temp/sahara@banana.txt","rb") as fileToTest:
             self.assertEqual(fileToTest.read(),self.testfile.read())
 
         #Test if the result was true
@@ -111,7 +111,7 @@ class testStorageModuleTests(TestCase):
 
         #Test if the file was saved
         self.overrideTestFile.seek(0,0) 
-        with open("./Storage/Cache/sahara@banana.txt","rb") as fileToTest:
+        with open("./Storage/Temp/sahara@banana.txt","rb") as fileToTest:
             self.assertEqual(fileToTest.read(),self.overrideTestFile.read())
 
     def testCachingPrivateFile(self):

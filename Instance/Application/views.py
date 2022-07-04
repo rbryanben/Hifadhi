@@ -906,3 +906,32 @@ def deleteFile(request):
         
 
     return  HttpResponse()
+
+
+"""
+    (POST) /api/version/delete_cache → deleted a file from the cache
+	headers(SHARD_KEY)
+	Parameters:
+		query_string: file cache query string
+	Responses:
+		200 → Success
+		* 
+"""
+@api_view(['POST',])
+def deleteCached(request):
+    #check if the SHARD_KEY is defined in the enviroment variables
+    if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
+    
+    #check shard key is specified
+    if "SHARD-KEY" not in request.headers: return HttpResponse("Missing Header SHARD-KEY ",status=400)
+
+    #check if the SHARD_KEY is correct
+    if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
+
+    # Check if query string is defined
+    if "query_string" not in request.POST: return HttpResponse("Missing parameter query_string",status=400)
+
+    queryString = request.POST.get("query_string")
+
+    # Remove any cached files records 
+    cachedFile.objects.filter(fileQueryName=queryString).delete()
