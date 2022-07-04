@@ -44,3 +44,9 @@ Backlog:
 
 After Research:
   - Clean out expired signatures and ipv4Access
+  - If memory is full redirect to another instance
+
+Bugs:
+  - Fix streaming bug before a big file is fully downloaded
+  - Updating, deleting files in use
+
