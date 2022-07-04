@@ -902,10 +902,18 @@ def deleteFile(request):
             return HttpResponse(queryString)
         
         # Delete on other instances 
-        return shardQueryHelper.deleteFileOnOtherInstances(queryString)
-        
+        return shardQueryHelper.deleteCachedFileOnOtherInstances(queryString)
+    
+    # Instance is not this one 
+    
+    # Delete cached file if any 
+    deleteAnyCachedFile(queryString)
 
-    return  HttpResponse()
+    # Remove any cached files records 
+    cachedFile.objects.filter(fileQueryName=queryString).delete()
+
+    return shardQueryHelper.deleteFileOnAnotherInstance(queryString,instance)
+
 
 
 """

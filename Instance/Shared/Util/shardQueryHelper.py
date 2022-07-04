@@ -30,21 +30,7 @@ def retriveFromShard(request,instance,filename,queryString, signature=None):
     
     else:
         #function to get the IPv4 from list returned on registration
-        def getInstanceIpv4(instance, Startup):
-            if instance in Startup.knownInstances:
-                return Startup.knownInstances.get(instance)['ipv4']
-            return None
-
-        #get the instance ipv4
-        instanceIPv4 = getInstanceIpv4(instance,Startup)
-        
-        #if instanceIPv4 is None then re-register to get an updated list of instances 
-        if instanceIPv4 == None:
-                gossip_instance_ip = os.environ.get("GOSSIP_INSTANCE")
-                registerToInstance(gossip_instance_ip)
-
-        #get the IPv4 from the updated list
-        instanceIPv4 = getInstanceIpv4(instance,Startup)
+        instanceIPv4 = getInstanceIPv4(instance)
 
     
     # if instanceIPv4 is still Null update that the instance could not be found in the Shard
@@ -127,9 +113,38 @@ def retriveFromShard(request,instance,filename,queryString, signature=None):
 
 
 """
-    Delete file on other instances helper 
+    Delete file on another instance
 """
-def deleteFileOnOtherInstances(queryString):
+def deleteFileOnAnotherInstance(queryString,instance):
+    # Headers and form data
+    headers = {'SHARD-KEY': os.environ.get("SHARD_KEY"),}
+    files = {
+        'query_string': (None,queryString),
+    }
+
+    print(queryString)
+
+    # Get the ipv4 
+    instanceIPv4 = getInstanceIPv4(instance)
+
+    # Check if IPv4 is not None
+    if instanceIPv4 == None: HttpResponse(f"Could not find instance {instance}",status=404)
+
+    # Send the requests
+    try:
+       
+        result = requests.post(f'http://{instanceIPv4}/api/v1/delete', headers=headers, files=files,timeout=5)
+        print(result.text)
+        return HttpResponse(result.text,status=result.status_code)
+    except:
+        status = "Connection Failed"
+        return HttpResponse(status,status=500)
+
+
+"""
+    Delete cached file on other instances helper 
+"""
+def deleteCachedFileOnOtherInstances(queryString):
     # Instance is the gossip instance
     if "GOSSIP_INSTANCE" not in os.environ:
         endpoints = [{
@@ -157,13 +172,46 @@ def deleteFileOnOtherInstances(queryString):
 
     return HttpResponse(json.dumps(response))
 
+"""
+    Get another instance ipv4 
+"""
+def getInstanceIPv4(instance)-> str :
+    """
+        Get the instance Ipv4 from the GOSSIP instance or from registered instances 
+    """
+    if "GOSSIP_INSTANCE" not in os.environ:
+        # Not a gossip instance and not registered on any shard return Failure 
+        if  registeredInstance.objects.all().count() < 1: return None
+        # Set the ipv4
+        instanceIPv4 = registeredInstance.objects.get(instance_name=instance).ipv4 if registeredInstance.objects.filter(instance_name=instance).exists() else None
+
+        return instanceIPv4
+
+    #function to get the IPv4 from list returned on registration
+    def getInstanceIpv4(instance, Startup):
+        if instance in Startup.knownInstances:
+            return Startup.knownInstances.get(instance)['ipv4']
+        return None
+
+    #get the instance ipv4
+    instanceIPv4 = getInstanceIpv4(instance,Startup)
+    
+    #if instanceIPv4 is None then re-register to get an updated list of instances 
+    if instanceIPv4 == None:
+            gossip_instance_ip = os.environ.get("GOSSIP_INSTANCE")
+            registerToInstance(gossip_instance_ip)
+
+    #get the IPv4 from the updated list
+    return getInstanceIpv4(instance,Startup)
+
+
 
 """
     Function to send a delete cache request
 """
 def deleteFromCache(params):
     # Headers and form data
-    headers = {'SHARD-KEY': '2022RBRYANBEN',}
+    headers = {'SHARD-KEY': os.environ.get("SHARD_KEY"),}
     files = {
         'query_string': (None, params["query_string"]),
     }
