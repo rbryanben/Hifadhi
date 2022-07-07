@@ -99,6 +99,7 @@ class cachedFile(models.Model):
     public = models.BooleanField(default=True)
     size = models.BigIntegerField(default=0)
     priority = models.IntegerField(default=0)
+    reads = models.BigIntegerField(default=1)
 
     """
         Returns datetime timestamp cached
