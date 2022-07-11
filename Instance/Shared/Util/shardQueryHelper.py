@@ -92,12 +92,16 @@ def retriveFromShard(request,instance,filename,queryString, signature=None):
             
         #got the file
         stream.raise_for_status()
+
+        # update the number of reads 
+        cachedRecords = cachedFile.objects.filter(fileQueryName=queryString)
+        if cachedRecords.exists():
+            cachedRecords[0].appendReads()
         
         #file does not exist in the cache then write the file and send it
         if queryString not in os.listdir("./Storage/Temp/"):
             writeFile(queryString,stream)
             
-        
         #but if file exists in the cache
         #check if the cached file is still valid by checking if the cached dates match
         cachedFileTimestamp = cachedFile.objects.get(fileQueryName=queryString).lastUpdated()

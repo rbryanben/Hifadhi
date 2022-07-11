@@ -115,6 +115,13 @@ class cachedFile(models.Model):
         self.cached = datetime.now()
         self.save()
 
+    """
+        updates the no of reads
+    """
+    def appendReads(self):
+        self.reads += 1
+        self.save()
+
 
 
 """
