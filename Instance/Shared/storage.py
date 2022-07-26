@@ -28,21 +28,19 @@ def store(file,fileName,override=False,public=True):
     fileSize = file.tell()
     file.seek(0,0)
 
-    #check if there is space for this operation
-    hdd = psutil.disk_usage('/')
-    free = hdd.total - hdd.used
-
     # memory management
     memoryValidation = storeMemoryManagement(fileSize)
-    print(memoryValidation)
-    if fileSize > free : return [False,"Insufficient Storage"]
 
-    # Do not Override the file
+    # Check if we can store
+    if memoryValidation[0] == False:
+        return memoryValidation
+
+    # Override is false
     if (override == False):
-        # If the name is taken return error 
+        # Is file name taken ?
         if (filenameTaken(fileName)):
             return [False,"Filename Taken"]
-        # If name is not taken create a db record and store the new file
+        # File name is not taken
         newfileRecord = storedFile(filename=fileName,public=public,size=fileSize)
         newfileRecord.save()
 
@@ -50,6 +48,7 @@ def store(file,fileName,override=False,public=True):
             fileToWrite.write(file.read())
         return [True,f'{instanceName}@{fileName}']
 
+    # Override if true
     if (filenameTaken(fileName)):
         # Create a new record
         prevFileRecord = storedFile.objects.get(filename=fileName)
@@ -133,23 +132,29 @@ def deleteAnyCachedFile(filename):
 def storeMemoryManagement(requiredFileSize):
     # Get the disk
     disk = psutil.disk_usage('/')
-    free = 30 #disk.free / 1024 ** 3 
+    free = 1 #disk.free / 1024 ** 3 
     required = requiredFileSize / 1024 ** 3
-    cached = cachedFile.objects.all().aggregate(Sum('size')).get("size__sum") / 1024 ** 3 if cachedFile.objects.all().count() > 0 else 0 
+    cached = round(cachedFile.objects.all().aggregate(Sum('size')).get("size__sum") / 1024 ** 3 ) if cachedFile.objects.all().count() > 0 else 0 
 
     print(f"free: {free} , cached: {cached}, required {required}")
     # there is no free space
     if free < required:
         # is the cache overlapping
         if cached > 20:
+            # find a files to delete
+
+            """"
+                See you tommorow 
+            """
+            
             return "Find Cached Files to delete"
         else:
-            return [True,"Insufficent Storage"]
+            return [False,"Insufficent Storage"]
     # there is free space
     else:
         # cache is full -> then all the space is reserved for storage
         if cached >= 20:
-            return "simply store, all is reserved for storage"
+            return [True,"Store"]
         # cache is full -> after storing is there room for cached
         else:
             
