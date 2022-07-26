@@ -67,10 +67,10 @@ def registerToInstance(instance_ip):
 def getInstanceInfo():
     hdd = psutil.disk_usage('/')
     return {
-        "total_memory": hdd.total / (2**30),
+        "total_memory": hdd.total / (2**30), #2**30 == 1024*3
         "used_memory": hdd.used / (2**30),
-        "stored_files_size": storedFile.objects.all().aggregate(Sum('size')).get("size_sum") if storedFile.objects.all().aggregate(Sum('size')).get("size_sum") != None  else 0 / (2**30),
-        "cached_files_size": cachedFile.objects.all().aggregate(Sum('size')).get("size_sum") if cachedFile.objects.all().aggregate(Sum('size')).get("size_sum") != None  else 0 / (2**30),
+        "stored_files_size": storedFile.objects.all().aggregate(Sum('size')).get("size__sum") ,
+        "cached_files_size": cachedFile.objects.all().aggregate(Sum('size')).get("size__sum"),
         "instance_name": os.environ.get("INSTANCE_NAME") if "INSTANCE_NAME" in os.environ else "UNNAMED",
         "stored_files_count": storedFile.objects.all().count(),
         "cached_files_count": cachedFile.objects.all().count(),

@@ -1,4 +1,5 @@
 from fileinput import filename
+from django.db.models import Sum
 import psutil
 
 """
@@ -31,6 +32,9 @@ def store(file,fileName,override=False,public=True):
     hdd = psutil.disk_usage('/')
     free = hdd.total - hdd.used
 
+    # memory management
+    memoryValidation = storeMemoryManagement(fileSize)
+    print(memoryValidation)
     if fileSize > free : return [False,"Insufficient Storage"]
 
     # Do not Override the file
@@ -88,7 +92,7 @@ def cache(file,fileQueryName,public=True,priority=0):
 
     #check if the memory is full 
     file.read()
-    invalidationResult = assertInvalidation(file.tell())
+    invalidationResult = cacheMemoryManagemenent(file.tell())
     file.seek(0,0)
 
     if invalidationResult[0] != True:
@@ -123,9 +127,46 @@ def deleteAnyCachedFile(filename):
             pass 
 
 """
-    Asset Invalidation -> Checks if the memory allocated to cache is not full. If full finds a file remove
+    Memory management fot the store option
+    -> if the memory is full find cached files to delete if the cache is over 20GB
 """
-def assertInvalidation(fileSize):
+def storeMemoryManagement(requiredFileSize):
+    # Get the disk
+    disk = psutil.disk_usage('/')
+    free = 30 #disk.free / 1024 ** 3 
+    required = requiredFileSize / 1024 ** 3
+    cached = cachedFile.objects.all().aggregate(Sum('size')).get("size__sum") / 1024 ** 3 if cachedFile.objects.all().count() > 0 else 0 
+
+    print(f"free: {free} , cached: {cached}, required {required}")
+    # there is no free space
+    if free < required:
+        # is the cache overlapping
+        if cached > 20:
+            return "Find Cached Files to delete"
+        else:
+            return [True,"Insufficent Storage"]
+    # there is free space
+    else:
+        # cache is full -> then all the space is reserved for storage
+        if cached >= 20:
+            return "simply store, all is reserved for storage"
+        # cache is full -> after storing is there room for cached
+        else:
+            
+            if free - (required + (20  - cached)) > 0:
+                return "you can store, there is room for cache left"
+            else:
+                return [True,"Insufficent Storage"]
+
+
+"""
+    Memory management fot the cache option
+    -> If the cache is used up and there is no free memory, find cached files to delete
+"""
+def cacheMemoryManagemenent(requiredfileSize):
+    # Get the disk
+    disk = psutil.disk_usage('/')
+
     # Return reponse -> tell if any file was removed from cache
     return [True,"Insufficent Storage"]
 
