@@ -120,7 +120,9 @@ class cachedFile(models.Model):
     """
     def appendReads(self):
         self.reads += 1
-        self.save()
+        self.cached = self.cached
+        self.save(update_fields=['reads'])
+
 
 
 

@@ -2,7 +2,6 @@
     Handle Shard Retrival Operations
 """
 from concurrent.futures import ThreadPoolExecutor
-from importlib.resources import path
 import json
 import mimetypes
 import os
@@ -13,6 +12,7 @@ import Main.urls as Startup
 import requests
 from Shared.Util.bucket import get_client_ip, range_re, RangeFileWrapper, registerToInstance
 from Shared.models import cachedFile, registeredInstance
+from Shared.storage import cacheMemoryManagemenent
 
 
 """
@@ -22,23 +22,12 @@ def retriveFromShard(request,instance,filename,queryString, signature=None):
     """
         Get the instance Ipv4 from the GOSSIP instance or from registered instances 
     """
-    if "GOSSIP_INSTANCE" not in os.environ:
-        # Not a gossip instance and not registered on any shard return Failure 
-        if  registeredInstance.objects.all().count() < 1: return HttpResponse("Shard Retrival Failure",status=500)
-        # Set the ipv4
-        instanceIPv4 = registeredInstance.objects.get(instance_name=instance).ipv4 if registeredInstance.objects.filter(instance_name=instance).exists() else None
-    
-    else:
-        #function to get the IPv4 from list returned on registration
-        instanceIPv4 = getInstanceIPv4(instance)
-
-    
-    # if instanceIPv4 is still Null update that the instance could not be found in the Shard
+    instanceIPv4 = getInstanceIPv4(instance)
     if instanceIPv4 == None:
-        return HttpResponse(f"Could not find instance {instance}",status=404)
-    
+        return HttpResponse("Instance Not In Shard",status=500)
     #get the client ipv4 
     clientIPv4 = get_client_ip(request)
+
 
     # get the file
     with requests.get(f"http://{instanceIPv4}/api/v1/shard_download/{queryString}?signature={signature}",stream=True,headers={"SHARD-KEY":os.environ.get("SHARD_KEY"),"HTTP-X-FORWARDED-FOR":clientIPv4}) as stream:
@@ -71,6 +60,11 @@ def retriveFromShard(request,instance,filename,queryString, signature=None):
 
         #lamda function to write the file and then send the file 
         def writeFile(queryString,stream):
+            # Memory management
+            result = cacheMemoryManagemenent(int(stream.headers.get("Content-Length")))
+            if result[0] == False:
+                return HttpResponse(result[1],status=409)
+            
             with open(f"./Storage/Temp/{queryString}","wb") as cacheFile:
                 for chunk in stream.iter_content(chunk_size=8192):
                     cacheFile.write(chunk)
@@ -93,6 +87,7 @@ def retriveFromShard(request,instance,filename,queryString, signature=None):
         #got the file
         stream.raise_for_status()
 
+        
         # update the number of reads 
         cachedRecords = cachedFile.objects.filter(fileQueryName=queryString)
         if cachedRecords.exists():
@@ -107,8 +102,10 @@ def retriveFromShard(request,instance,filename,queryString, signature=None):
         cachedFileTimestamp = cachedFile.objects.get(fileQueryName=queryString).lastUpdated()
         receivedFileTimestamp = int(stream.headers.get("last-updated"))
 
+        print(cachedFileTimestamp,receivedFileTimestamp)
         #if hashes do not match rewrite the file and send the file 
         if receivedFileTimestamp > cachedFileTimestamp : 
+            print("update file")
             return writeFile(queryString,stream)
 
         #close the stream and send the cached file 

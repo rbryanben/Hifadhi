@@ -131,10 +131,10 @@ def deleteAnyCachedFile(filename):
     -> if the memory is full find cached files to delete if the cache is over 20GB
 """
 def storeMemoryManagement(requiredFileSize):
-    # Get the disk
-    cache_size = 20
+    #get from environ
+    cache_size = 40 if "CACHE_LIMIT" not in os.environ else int(os.environ.get("CACHE_LIMIT"))
     disk = psutil.disk_usage('/')
-    free = 1 #disk.free / 1024 ** 3 
+    free = disk.free / 1024 ** 3 
     required = requiredFileSize / 1024 ** 3
     cached = round(cachedFile.objects.all().aggregate(Sum('size')).get("size__sum") / 1024 ** 3 ) if cachedFile.objects.all().count() > 0 else 0 
 
@@ -178,7 +178,7 @@ def storeMemoryManagement(requiredFileSize):
             return [True,"Store"]
         # cache is not full -> after storing is there room for cached
         else:
-            if free - (cache_size - cached) > required:
+            if free - (cache_size - cached) <= required:
                 return [False,"Will consume the cache "]
             else:
                 return [True,"Store"]
@@ -192,10 +192,32 @@ def storeMemoryManagement(requiredFileSize):
     -> If the cache is used up and there is no free memory, find cached files to delete
 """
 def cacheMemoryManagemenent(requiredfileSize):
-    # Get the disk
     disk = psutil.disk_usage('/')
+    free = disk.free
 
-    # Return reponse -> tell if any file was removed from cache
-    return [True,"Insufficent Storage"]
-
+    if free > requiredfileSize:
+        return [True,"Store"]
     
+    # find a files to delete // Buffer this thing
+    allFiles = cachedFile.objects.extra(select={'compute':'reads * (1+priority)'},order_by=('compute',))
+    s = 0
+    to_delete = [] 
+
+    #find file to delete
+    for file in allFiles:
+        s += file.size 
+        to_delete.append(file)
+
+        #check if we have met the required size 
+        if s >= requiredfileSize:
+            break
+
+    # Delete files
+    for file in to_delete:
+        deleteAnyCachedFile(file.fileQueryName)
+        file.delete()
+        pass
+
+    return [True,"Store"]
+
+            

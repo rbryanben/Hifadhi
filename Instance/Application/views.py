@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from django.http import HttpResponse, StreamingHttpResponse
 from rest_framework.decorators import api_view
-from Shared.storage import store as storeFile, delete, deleteAnyCachedFile
+from Shared.storage import cacheMemoryManagemenent, store as storeFile, delete, deleteAnyCachedFile
 from Shared.models import storedFile, registeredInstance, cachedFile, presignedURL, ipv4Access
 from django.db.models import Sum
 from Shared.Util import queryParser
@@ -33,13 +33,9 @@ def store(request):
     #check if the SHARD_KEY is correct
     if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
 
-    # Block other methods 
-    if request.method != "POST": 
-        return HttpResponse("Invalid Method -> POST Only",status=400)
-    
+
     # Get the file to store
     fileToStore = request.FILES.get("file")
-
    
     # Check if everything if requered parameters are true 
     if ("filename" not in request.POST or fileToStore == None): 
@@ -138,6 +134,11 @@ def cache(request):
         
         #lamda function to write the file and then send the file 
         def writeFile(queryString,stream):
+            # Memory management
+            result = cacheMemoryManagemenent(int(stream.headers.get("Content-Length")))
+            if result[0] == False:
+                return HttpResponse(result[1],status=409)
+                
             with open(f"./Storage/Temp/{queryString}","wb") as cacheFile:
                 for chunk in stream.iter_content(chunk_size=8192):
                     cacheFile.write(chunk)
