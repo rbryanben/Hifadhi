@@ -6,6 +6,7 @@ from Shared.models import *
 
 
 
+
 """
     Storage Module Tests
 """
@@ -121,6 +122,6 @@ class testStorageModuleTests(TestCase):
         cache(file,"sahara@banana_pvt.txt",public=False)
 
         self.assertFalse(cachedFile.objects.get(fileQueryName="sahara@banana_pvt.txt").public)
-        
-    
-        
+
+
+  

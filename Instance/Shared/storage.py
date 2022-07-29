@@ -1,6 +1,9 @@
 from fileinput import filename
 from django.db.models import Sum
 import psutil
+from .models import filenameTaken, storedFile, cachedFile
+import os
+
 
 """
     Shared.py 
@@ -8,8 +11,6 @@ import psutil
     The module Shared/storage.py contains methods for storing and caching files that will be accessed by API. 
     With the following methods.
 """
-from .models import filenameTaken, storedFile, cachedFile
-import os
 
 # Vars 
 localStorage = './Storage/Local'
@@ -131,23 +132,43 @@ def deleteAnyCachedFile(filename):
 """
 def storeMemoryManagement(requiredFileSize):
     # Get the disk
+    cache_size = 20
     disk = psutil.disk_usage('/')
     free = 1 #disk.free / 1024 ** 3 
     required = requiredFileSize / 1024 ** 3
     cached = round(cachedFile.objects.all().aggregate(Sum('size')).get("size__sum") / 1024 ** 3 ) if cachedFile.objects.all().count() > 0 else 0 
 
-    print(f"free: {free} , cached: {cached}, required {required}")
     # there is no free space
     if free < required:
         # is the cache overlapping
-        if cached > 20:
-            # find a files to delete
-
-            """"
-                See you tommorow 
-            """
+        if cached > cache_size:
+            # check if the file to delete is just way to big 
+            if cached - required < cache_size:
+                return [False,"Wont Be Enough Space For Cache"]
             
-            return "Find Cached Files to delete"
+            # find a files to delete // Buffer this thing
+            allFiles = cachedFile.objects.extra(select={'compute':'reads * (1+priority)'},order_by=('compute',))
+            s = 0
+            to_delete = [] 
+
+            #find file to delete
+            for file in allFiles:
+                s += file.size 
+                to_delete.append(file)
+                #check that it does not eat into cache
+                if cached - (s/1024**3) < cache_size:
+                    return [False,"Storing file will eat into the cache reserve"] 
+                #check if we have met the required size 
+                if s >= required + 10 *1024**2:
+                    break
+
+            # Delete files
+            for file in to_delete:
+                deleteAnyCachedFile(file.fileQueryName)
+                file.delete()
+
+
+            return [True,"Store"]
         else:
             return [False,"Insufficent Storage"]
     # there is free space
@@ -155,13 +176,15 @@ def storeMemoryManagement(requiredFileSize):
         # cache is full -> then all the space is reserved for storage
         if cached >= 20:
             return [True,"Store"]
-        # cache is full -> after storing is there room for cached
+        # cache is not full -> after storing is there room for cached
         else:
-            
-            if free - (required + (20  - cached)) > 0:
-                return "you can store, there is room for cache left"
+            if free - (cache_size - cached) > required:
+                return [False,"Will consume the cache "]
             else:
-                return [True,"Insufficent Storage"]
+                return [True,"Store"]
+
+
+
 
 
 """
