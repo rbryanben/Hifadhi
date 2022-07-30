@@ -30,7 +30,10 @@ def retriveFromShard(request,instance,filename,queryString, signature=None):
 
 
     # get the file
-    with requests.get(f"http://{instanceIPv4}/api/v1/shard_download/{queryString}?signature={signature}",stream=True,headers={"SHARD-KEY":os.environ.get("SHARD_KEY"),"HTTP-X-FORWARDED-FOR":clientIPv4}) as stream:
+    try:
+        stream = requests.get(f"http://{instanceIPv4}/api/v1/shard_download/{queryString}?signature={signature}",
+            stream=True,
+            headers={"SHARD-KEY":os.environ.get("SHARD_KEY"),"HTTP-X-FORWARDED-FOR":clientIPv4})
         
         #lamda function to send the file to the client as a stream
         def sendStream(path):
@@ -57,7 +60,7 @@ def retriveFromShard(request,instance,filename,queryString, signature=None):
             resp['Accept-Ranges'] = 'bytes'
 
             return resp
-
+    
         #lamda function to write the file and then send the file 
         def writeFile(queryString,stream):
             # Memory management
@@ -114,7 +117,9 @@ def retriveFromShard(request,instance,filename,queryString, signature=None):
         #close the stream and send the cached file 
         stream.close()
         return sendStream(f"./Storage/Temp/{queryString}") 
-
+    except:
+        return HttpResponse(f"Connection to instance {instance} failed")
+   
 
 """
     Delete file on another instance

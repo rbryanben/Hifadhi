@@ -130,7 +130,8 @@ def cache(request):
         return HttpResponse(f"Could not find instance {instance}",status=404)
 
     # get the file
-    with requests.get(f"http://{instanceIPv4}/api/v1/shard_download/{queryString}?internal=true",stream=True,headers={"SHARD-KEY":os.environ.get("SHARD_KEY")}) as stream:
+    try:
+        stream = requests.get(f"http://{instanceIPv4}/api/v1/shard_download/{queryString}?internal=true",stream=True,headers={"SHARD-KEY":os.environ.get("SHARD_KEY")})
         
         #lamda function to write the file and then send the file 
         def writeFile(queryString,stream):
@@ -183,7 +184,8 @@ def cache(request):
 
         #close the stream  
         stream.close() 
-
+    except:
+        return HttpResponse(f"Connection to instance {instance} failed")
 
 
     return HttpResponse(f"Cached file {queryString} on instance {os.environ.get('INSTANCE_NAME')}")
