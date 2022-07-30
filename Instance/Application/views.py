@@ -151,6 +151,11 @@ def cache(request):
                 cachedFileRecord = cachedFile(fileQueryName=queryString,priority=priority,public=False,size=int(stream.headers.get("content-length")))
                 cachedFileRecord.save()
 
+        #failed to get the file with 404 
+        #   -> delete the file 
+        if stream.status_code == 404:
+            deleteAnyCachedFile(queryString)
+
         #failed to get the file 
         if stream.status_code != 200: return HttpResponse(stream.text,status=stream.status_code)
             

@@ -12,7 +12,7 @@ import Main.urls as Startup
 import requests
 from Shared.Util.bucket import get_client_ip, range_re, RangeFileWrapper, registerToInstance
 from Shared.models import cachedFile, registeredInstance
-from Shared.storage import cacheMemoryManagemenent
+from Shared.storage import cacheMemoryManagemenent, deleteAnyCachedFile
 
 
 """
@@ -80,7 +80,12 @@ def retriveFromShard(request,instance,filename,queryString, signature=None):
             
             #send the file 
             return sendStream(f"./Storage/Temp/{queryString}") 
-            
+        
+        #failed to get the file with 404 
+        #   -> delete the file 
+        if stream.status_code == 404:
+            deleteAnyCachedFile(queryString)
+
         #failed to get the file 
         if stream.status_code != 200: return HttpResponse(stream.text,status=stream.status_code)
             
@@ -102,10 +107,8 @@ def retriveFromShard(request,instance,filename,queryString, signature=None):
         cachedFileTimestamp = cachedFile.objects.get(fileQueryName=queryString).lastUpdated()
         receivedFileTimestamp = int(stream.headers.get("last-updated"))
 
-        print(cachedFileTimestamp,receivedFileTimestamp)
         #if hashes do not match rewrite the file and send the file 
         if receivedFileTimestamp > cachedFileTimestamp : 
-            print("update file")
             return writeFile(queryString,stream)
 
         #close the stream and send the cached file 
@@ -123,20 +126,15 @@ def deleteFileOnAnotherInstance(queryString,instance):
         'query_string': (None,queryString),
     }
 
-    print(queryString)
-
     # Get the ipv4 
     instanceIPv4 = getInstanceIPv4(instance)
 
     # Check if IPv4 is not None
     if instanceIPv4 == None: return HttpResponse(f"Could not find instance {instance}",status=404)
-    print(instanceIPv4)
 
     # Send the requests
-    try:
-       
+    try: 
         result = requests.post(f'http://{instanceIPv4}/api/v1/delete', headers=headers, files=files,timeout=5)
-        print(result.text)
         return HttpResponse(result.text,status=result.status_code)
     except:
         status = "Connection Failed"
