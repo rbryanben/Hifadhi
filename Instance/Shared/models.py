@@ -20,9 +20,9 @@ class storedFile(models.Model):
     def toDictionary(self):
         return {
             "filename" : self.filename,
-            "stored" : "31 April 2022",
+            "stored" : self.stored.strftime("%Y%m%d%H%M%S"),
             "public" : self.public,
-            "size"  : size(self.size),
+            "size"  : self.size,
             "queryString" : self.queryString,
         }
 
@@ -79,12 +79,12 @@ class registeredInstance(models.Model):
                 "ipv4" : self.ipv4,
                 "total_memory" : size(self.total_memory),
                 "used_memory" : size(self.used_memory),
-                "stored_files_size" : size(self.stored_files_size),
-                "cached_files_size" : size(self.cached_files_size),
+                "stored_files_size" : self.stored_files_size,
+                "cached_files_size" : self.cached_files_size,
                 "instance_name" : self.instance_name,
                 "stored_files_count" : self.stored_files_count,
                 "cached_files_count" : self.cached_files_count,
-                "uptime" : size(self.uptime),
+                "uptime" : self.uptime,
                 "healthy" : self.healthy
             }
         }
@@ -123,7 +123,16 @@ class cachedFile(models.Model):
         self.cached = self.cached
         self.save(update_fields=['reads'])
 
-
+    """
+        converts toDictionary
+    """
+    def toDictionary(self):
+        return {
+            "file_query_name" : self.fileQueryName,
+            "stored" : self.cached.strftime("%Y%m%d%H%M%S"),
+            "public" : self.public,
+            "size" : self.size
+        }
 
 
 """

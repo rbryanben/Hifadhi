@@ -4,8 +4,8 @@ from rest_framework.decorators import api_view
 from Shared.storage import cacheMemoryManagemenent, store as storeFile, delete, deleteAnyCachedFile
 from Shared.models import storedFile, registeredInstance, cachedFile, presignedURL, ipv4Access
 from django.db.models import Sum
-from Shared.Util import queryParser
-from Shared.Util import shardQueryHelper
+from Shared.Util import queryParser, shardQueryHelper
+from Shared.decorators import shardKeyRequired
 from wsgiref.util import FileWrapper
 from Shared.Util.bucket import get_client_ip, range_re, RangeFileWrapper, sendCacheRequest
 import Main.urls as startUp
@@ -189,7 +189,6 @@ def cache(request):
 
 
     return HttpResponse(f"Cached file {queryString} on instance {os.environ.get('INSTANCE_NAME')}")
-
 
 """
     (GET) /api/version/download → 
@@ -437,7 +436,6 @@ def register(request):
         status=200
     )
 
-
 """
     (GET) /api/version/get_registered_instances → 
 	Headers: SHARD-KEY
@@ -552,17 +550,9 @@ def shardInstance(request):
 		* 
 """
 @api_view(['GET',])
+@shardKeyRequired
 def shardDownload(request,queryString):
     clientIp = request.headers.get("Http-X-Forwarded-For")
-
-    #check if the SHARD_KEY is defined in the enviroment variables
-    if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
-    
-    #check shard key is specified
-    if "SHARD-KEY" not in request.headers: return HttpResponse("Missing Header SHARD-KEY ",status=400)
-
-    #check if the SHARD_KEY is correct
-    if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
 
     # Get Signature
     signature = request.GET.get("signature") if "signature" in request.GET else None
@@ -646,16 +636,8 @@ def shardDownload(request,queryString):
 		* 
 """
 @api_view(['GET',])
+@shardKeyRequired
 def preSignedAccess(request,queryString):
-    #check if the SHARD_KEY is defined in the enviroment variables
-    if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
-    
-    #check shard key is specified
-    if "SHARD-KEY" not in request.headers: return HttpResponse("Missing Header SHARD-KEY ",status=400)
-
-    #check if the SHARD_KEY is correct
-    if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
-
     #check if the duration is defined 
     if "duration" not in request.GET: return HttpResponse("Value duration is not defined",status=400)
 
@@ -696,16 +678,8 @@ def preSignedAccess(request,queryString):
             * 
 """
 @api_view(['GET','DELETE'])
+@shardKeyRequired
 def IPv4Access(request,queryString):
-
-    #check if the SHARD_KEY is defined in the enviroment variables
-    if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
-    
-    #check shard key is specified
-    if "SHARD-KEY" not in request.headers: return HttpResponse("Missing Header SHARD-KEY ",status=400)
-
-    #check if the SHARD_KEY is correct
-    if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
 
     """
         (GET) ipv4Access
@@ -805,17 +779,8 @@ def preSignedAccessDelete(request):
 		* 
 """
 @api_view(['POST',])
+@shardKeyRequired
 def shardCache(request):
-    
-    #check if the SHARD_KEY is defined in the enviroment variables
-    if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
-    
-    #check shard key is specified
-    if "SHARD-KEY" not in request.headers: return HttpResponse("Missing Header SHARD-KEY ",status=400)
-
-    #check if the SHARD_KEY is correct
-    if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
-
     #check if all parameters are defined 
     if "priority" not in request.POST: return HttpResponse("Missing parameter priority",status=400)
     if "query_string" not in request.POST: return HttpResponse("Missing parameter query_string", status=400)
@@ -863,7 +828,6 @@ def shardCache(request):
 
     return HttpResponse(json.dumps(cachedOn))
 
-
 """
     (POST) /api/version/delete → delete file 
 	    headers(SHARD_KEY)
@@ -874,17 +838,8 @@ def shardCache(request):
             * 
 """
 @api_view(['POST',])
+@shardKeyRequired
 def deleteFile(request):
-
-    #check if the SHARD_KEY is defined in the enviroment variables
-    if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
-    
-    #check shard key is specified
-    if "SHARD-KEY" not in request.headers: return HttpResponse("Missing Header SHARD-KEY ",status=400)
-
-    #check if the SHARD_KEY is correct
-    if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
-
     # Check if query string is defined
     if "query_string" not in request.POST: return HttpResponse("Missing parameter query_string",status=400)
 
@@ -922,8 +877,6 @@ def deleteFile(request):
 
     return shardQueryHelper.deleteFileOnAnotherInstance(queryString,instance)
 
-
-
 """
     (POST) /api/version/delete_cache → deleted a file from the cache
 	headers(SHARD_KEY)
@@ -934,16 +887,8 @@ def deleteFile(request):
 		* 
 """
 @api_view(['POST',])
+@shardKeyRequired
 def deleteCached(request):
-    #check if the SHARD_KEY is defined in the enviroment variables
-    if "SHARD_KEY" not in os.environ: return HttpResponse("SHARD_KEY is not defined in the enviroment variables",status=500)
-    
-    #check shard key is specified
-    if "SHARD-KEY" not in request.headers: return HttpResponse("Missing Header SHARD-KEY ",status=400)
-
-    #check if the SHARD_KEY is correct
-    if request.headers["SHARD-KEY"] != os.environ["SHARD_KEY"]: return HttpResponse("Denied",status=401)
-
     # Check if query string is defined
     if "query_string" not in request.POST: return HttpResponse("Missing parameter query_string",status=400)
 
@@ -956,3 +901,32 @@ def deleteCached(request):
     deleteAnyCachedFile(queryString)
 
     return HttpResponse(queryString,status=200)
+
+"""
+    (GET) /api/version/information → 
+	headers(SHARD_KEY)
+	Parameters:
+		count: The information retrieval count
+	Responses:
+		200 → Success
+		* 
+"""
+@shardKeyRequired
+def information(request):
+    hdd = psutil.disk_usage('/')
+    data = {
+            "name" : os.environ.get("INSTANCE_NAME"),
+            "uptime" : time.time() - startUp.startupTime,
+            "total_memory": hdd.total,
+            "free_memory" : hdd.total - hdd.used,
+            "cached_memory": cachedFile.objects.all().aggregate(Sum('size')).get("size__sum"),
+            "stored": storedFile.objects.all().aggregate(Sum('size')).get("size__sum"),
+            "cached_files": [
+                record.toDictionary() for record in cachedFile.objects.all()
+            ],
+            "stored_files": [
+                record.toDictionary() for record in storedFile.objects.all()
+            ]
+        }
+
+    return HttpResponse(json.dumps(data),status=200)
