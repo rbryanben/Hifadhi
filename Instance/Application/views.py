@@ -912,6 +912,7 @@ def deleteCached(request):
 		* 
 """
 @shardKeyRequired
+@api_view(['GET',])
 def information(request):
     hdd = psutil.disk_usage('/')
     data = {
@@ -930,3 +931,26 @@ def information(request):
         }
 
     return HttpResponse(json.dumps(data),status=200)
+
+
+"""
+    (GET) /api/version/logs → 
+	headers(SHARD_KEY)
+	Parameters:
+		count: The information retrieval count
+	Responses:
+		200 → Success
+		* 
+"""
+@shardKeyRequired
+@api_view(['GET','DELETE',])
+def logs(request):
+    if request.method == "GET":
+        with open("./logs/application.log","rb") as logFile:
+                logs = logFile.read()
+        
+        return HttpResponse(logs,status=200)
+    else:
+        with open("./logs/application.log","w") as logFile:
+            logFile.flush()
+        return HttpResponse("Flushed log file",status=200)

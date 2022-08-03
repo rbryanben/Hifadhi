@@ -1,0 +1,6 @@
+
+DELETE	/api/v1/logs	200	Stream	20220803153135
+GET	/api/v1/logs	200	Stream	20220803153141
+GET	/api/v1/stream/SAHARA@docker.mp4	404	Stream	20220803153154
+GET	/api/v1/logs	200	Stream	20220803153157
+GET	/api/v1/logs	200	Stream	20220803153220
