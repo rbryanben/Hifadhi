@@ -194,7 +194,7 @@ def getInstanceIPv4(instance)-> str :
 
     #function to get the IPv4 from list returned on registration
     def getInstanceIpv4(instance, Startup):
-        if instance in Startup.knownInstances:
+        if Startup.knownInstances != None and instance in Startup.knownInstances:
             return Startup.knownInstances.get(instance)['ipv4']
         return None
 
