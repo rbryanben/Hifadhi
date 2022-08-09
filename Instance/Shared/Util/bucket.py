@@ -44,7 +44,7 @@ def registerToInstance(instance_ip):
         print(f"Registered on gossip instance http://{instance_ip}\n\n")
         return
     except Exception as e:
-        print(f"Reached Exception: {e}")
+        print(f"Failed to connect to http://{instance_ip}: {e}")
         startUp.registeredOnGossip = [False,f"Failed To Connect {e}"]
 
     #try on https 
@@ -56,6 +56,7 @@ def registerToInstance(instance_ip):
         print(f"Registered on gossip instance https://{instance_ip}\n\n")
         return
     except Exception as e:
+        print(f"Failed to connect to https://{instance_ip}: {e}")
         startUp.registeredOnGossip = [False,f"Failed To Connect {e}"]
 
     print("Failed To Connect To Gossip Instance -> Exception: " + startUp.registeredOnGossip[1] + "\n\n")
@@ -69,8 +70,8 @@ def getInstanceInfo():
     return {
         "total_memory": hdd.total / (2**30), #2**30 == 1024*3
         "used_memory": hdd.used / (2**30),
-        "stored_files_size": storedFile.objects.all().aggregate(Sum('size')).get("size__sum") ,
-        "cached_files_size": cachedFile.objects.all().aggregate(Sum('size')).get("size__sum"),
+        "stored_files_size": storedFile.objects.all().aggregate(Sum('size')).get("size__sum") if storedFile.objects.all().aggregate(Sum('size')).get("size__sum") != None else 0 ,
+        "cached_files_size": cachedFile.objects.all().aggregate(Sum('size')).get("size__sum") if cachedFile.objects.all().aggregate(Sum('size')).get("size__sum") != None else 0,
         "instance_name": os.environ.get("INSTANCE_NAME") if "INSTANCE_NAME" in os.environ else "UNNAMED",
         "stored_files_count": storedFile.objects.all().count(),
         "cached_files_count": cachedFile.objects.all().count(),

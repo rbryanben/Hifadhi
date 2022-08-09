@@ -114,3 +114,7 @@ GET	/api/v1/information	200	Stream	20220809115028
 GET	/api/v1/information	200	Stream	20220809115114
 GET	/api/v1/shard_download/SAHARA@music.mp4	200	Stream	20220809115510
 GET	/api/v1/shard_download/SAHARA@music.mp4	200	Stream	20220809115510
+GET	/api/v1/stream/GOBI@video.mp4	200	Stream	20220809120035
+GET	/api/v1/stream/GOBI@video.mp4	206	Stream	20220809120035
+GET	/api/v1/stream/GOBI@video.mp4	200	Stream	20220809120049
+GET	/favicon.ico	404	Stream	20220809120049
