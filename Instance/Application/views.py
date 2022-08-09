@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from django.http import HttpResponse, StreamingHttpResponse
+from django.shortcuts import render
 from rest_framework.decorators import api_view
 from Shared.storage import cacheMemoryManagemenent, store as storeFile, delete, deleteAnyCachedFile
 from Shared.models import storedFile, registeredInstance, cachedFile, presignedURL, ipv4Access
@@ -14,6 +15,17 @@ from Shared.Util.bucket import range_re, RangeFileWrapper, registerToInstance
 import Main.urls as Startup
 from concurrent.futures import ThreadPoolExecutor
 
+
+
+@api_view(['GET',])
+def landingPage(request):
+    context = {
+        "instance_name" : os.environ.get("INSTANCE_NAME"),
+        "host_ip" : request.get_host(),
+        "client_ip" : get_client_ip(request)
+    }
+
+    return render(request,"Application/landing.html",context)
 """
     (POST) /api/version/store → Stores a file to an instance
 	store(file,filename,override=False,mode=False)

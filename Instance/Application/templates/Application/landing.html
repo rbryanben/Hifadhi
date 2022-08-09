@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{instance_name}}</title>
+</head>
+<style>
+    .content-wrapper {
+        max-width: 25vw;
+        padding: 20px;
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%,-50%);
+        color: rgb(100, 100, 100);
+    }
+
+    .info-text {
+        text-align: center;
+        font-size: small;
+    }
+
+    .box-wrapper {
+        margin-bottom: 80px;
+    }
+
+    i {
+        margin:auto;
+        color: rgb(99, 99, 99);
+    }
+
+    /* Box */
+     .gg-arrange-back {
+        box-sizing: border-box;
+        position: relative;
+        transform: scale(var(--ggs,4));
+        display: block;
+        width: 18px;
+        height: 18px
+    }
+
+    .gg-arrange-back::after,
+    .gg-arrange-back::before {
+        content: "";
+        display: block;
+        box-sizing: border-box;
+        position: absolute
+    }
+
+    .gg-arrange-back::after {
+        width: 10px;
+        height: 10px;
+        border: 2px solid;
+        left: 4px;
+        top: 4px
+    }
+
+    .gg-arrange-back::before {
+        width: 8px;
+        height: 8px;
+        background: currentColor;
+        box-shadow: 10px 10px 0
+    } 
+
+</style>
+<body>
+    <div class="content-wrapper">
+         <!-- Box -->
+        <div class="box-wrapper">
+            <i class="gg-arrange-back"></i>
+        </div>
+        
+        <!-- Information text-->
+        <div class="info-text">
+            Hifadhi is a distributed file server made with python that makes use of containers. In English it is just AWS S3 that you can run on your computer or computers and serve files with access control. Contribute to project at this 
+            <a href="https://github.com/rbryanben/Hifadhi"> repository</a>. The name for this instance is {{instance_name}} being accessed from {{host_ip}} by client {{client_ip}}
+        </div>
+    </div>
+  
+</body>
+</html>

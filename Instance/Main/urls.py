@@ -17,10 +17,12 @@ from django.contrib import admin
 from django.urls import path, include
 import os
 from Shared.Util.bucket import registerToInstance
+from Application.views import landingPage
 import time
 
 
 urlpatterns = [
+    path('',landingPage,name="Landing Page"),
     path('admin/', admin.site.urls),
     path('api/',include("Application.urls")), #API Urls
 ]
