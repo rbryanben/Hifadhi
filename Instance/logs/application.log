@@ -73,3 +73,12 @@ GET	/	200	Stream	20220809102553
 GET	/	200	Stream	20220809102608
 GET	/	200	Stream	20220809102726
 GET	/	200	Stream	20220809102751
+GET	/api/v1/information	500	Stream	20220809104313
+GET	/api/v1/information	500	Stream	20220809104329
+GET	/api/v1/information	500	Stream	20220809104354
+GET	/api/v1/health	200	Stream	20220809104456
+GET	/api/v1/information	500	Stream	20220809104505
+GET	/api/v1/information	500	Stream	20220809104604
+GET	/api/v1/information	200	Stream	20220809104634
+GET	/api/v1/information	200	Stream	20220809104715
+GET	/api/v1/information	200	Stream	20220809105220

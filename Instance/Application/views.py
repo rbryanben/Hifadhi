@@ -80,7 +80,6 @@ def store(request):
     else:
         return HttpResponse(result[1],status=409)
 
-
 """
     (POST) /api/version/cache → cache a file on that instance
 	headers(SHARD_KEY)
@@ -929,6 +928,8 @@ def information(request):
     hdd = psutil.disk_usage('/')
     data = {
             "name" : os.environ.get("INSTANCE_NAME"),
+            "gossip_instance": os.environ.get("GOSSIP_INSTANCE") if "GOSSIP_INSTANCE" in os.environ else None,
+            "shard_status" : startUp.registeredOnGossip,
             "uptime" : time.time() - startUp.startupTime,
             "total_memory": hdd.total,
             "free_memory" : hdd.total - hdd.used,
@@ -941,6 +942,7 @@ def information(request):
                 record.toDictionary() for record in storedFile.objects.all()
             ]
         }
+
 
     return HttpResponse(json.dumps(data),status=200)
 
