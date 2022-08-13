@@ -1,7 +1,5 @@
 Tasks:
   - Gossip Instance:
-      - Cache invalidation (Removing Files That are cached when memory is full)
-      - When 404 is received when a file is cached, delete the file and its cache record 
       
       
       

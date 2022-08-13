@@ -1,8 +1,8 @@
 django
 django-cors-headers
-hurry.filesize
 psutil
 requests
 pytz
+apscheduler
 gunicorn
 djangorestframework

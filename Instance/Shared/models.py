@@ -1,7 +1,5 @@
 from datetime import datetime
-from pyexpat import model
 from django.db import models
-from hurry.filesize import size
 import os 
 
 """
@@ -77,8 +75,8 @@ class registeredInstance(models.Model):
         return { 
             self.instance_name: {
                 "ipv4" : self.ipv4,
-                "total_memory" : size(self.total_memory),
-                "used_memory" : size(self.used_memory),
+                "total_memory" : self.total_memory,
+                "used_memory" : self.used_memory,
                 "stored_files_size" : self.stored_files_size,
                 "cached_files_size" : self.cached_files_size,
                 "instance_name" : self.instance_name,

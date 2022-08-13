@@ -6,5 +6,5 @@ class SharedConfig(AppConfig):
     name = 'Shared'
 
     def ready(self) -> None:
-        Jobs.updater.start()
+        #Jobs.updater.start()
         return super().ready()
