@@ -207,15 +207,61 @@ To register to an instance simply set the enviroment variable GOSSIP_INSTANCE fo
 Let us start off by creating an instance named Kalahari that will act as our gossip instance, assuming you do not have one from the previous turtorials.
 
 ```
-  docker run --name instance-kalahari -d -e INSTANCE_NAME=Kalahari -e SHARD_KEY=BasicPassword -p 7110:80  rbryanben/hifadhi:test
+ docker run --name instance-kalahari -d -e INSTANCE_NAME=Kalahari -e SHARD_KEY=BasicPassword -p 7110:80  rbryanben/hifadhi:test
 ```
 
-Once the instance is running, lets create another instance that runs on port 7510 with the same SHARD-KEY. If the shard key does not match, the instance will not be registered. 
+Now let us obtain the instance IP using this command 
 
 ```
-  docker run --name instance-sahara -d -e INSTANCE_NAME=Sahara -e SHARD_KEY=BasicPassword -e GOSSIP_INSTANCE=127.0.01:7110 -p 7510:80  rbryanben/hifadhi:test
+docker inspect -f "{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}" instance-kalahari
 ```
 
+Once the instance is running and you have the ip, lets create another instance that runs on port 7510 with the same SHARD-KEY and GOSSIP_INSTANCE set to the IP address of the instance Kalahari. If the shard key does not match, the instance will not be registered
+
+```
+docker run --name instance-sahara -d -e INSTANCE_NAME=Sahara -e SHARD_KEY=BasicPassword -e GOSSIP_INSTANCE=<Kalahari_ip> -p 7510:80  rbryanben/hifadhi:test
+```
+
+That being done, let us check if the instance was registered on the gossip instance buy executing this curl command
+
+```
+curl --request GET \
+  --url http://localhost:7110/api/v1/registered_instances \
+  --header 'Content-Type: multipart/form-data' \
+  --header 'SHARD-KEY: BasicPassword'
+```
+
+You should get a list of all registered instances if everything executed correctly.
+
+```JSON
+{
+	"Sahara": {
+		"ipv4": "172.17.0.3",
+		"total_memory": 244,
+		"used_memory": 90,
+		"stored_files_size": 0,
+		"cached_files_size": 0,
+		"instance_name": "Sahara",
+		"stored_files_count": 0,
+		"cached_files_count": 0,
+		"uptime": 0,
+		"healthy": true
+	},
+	"Kalahari": {
+		"ipv4": "localhost:7110",
+		"total_memory": 244.47995376586914,
+		"used_memory": 90.63045501708984,
+		"stored_files_size": 0,
+		"cached_files_size": 0,
+		"instance_name": "Kalahari",
+		"stored_files_count": 0,
+		"cached_files_count": 0,
+		"uptime": 798.4496290683746
+	}
+}
+
+Congratulations if you received the above response. You have setup your very first distributed file server. Now go ahead an upload a file to any one of the instances and then try to stream the file from both instances.
+```
   
 
   
