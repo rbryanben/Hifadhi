@@ -191,6 +191,31 @@ http://localhost:7111/api/v1/download/Kalahari@video.mp4
   ```
   
   It is important to note that we did not use the IP address 127.0.0.1 and used instead the docker network gateway 172.17.0.1 to grant access. This is because requests to containers come from the network gateway unless you have macvlan setup with the container network. To learn more about how you can use your actual IP read the feature docs on Access Control. Now go ahead and stream the file.
+
+# Sharding
+
+Now comes the key feature which is to distribute the instances to increase availability and storage capacity. And let us start off by understanding what a gossip instance is.
+
+# Gossip Instance
+
+The gossip instance is sort of the leader among a group of instances. It keeps the records of all instances that are linked together and provides other instances with infomation about other instances, such that they can retrieve information from them. An instance becomes a gossip instance when another instance registers to it, meaning initially a gossip instance is a regular instance. 
+
+# Registering to a Gossip Instance
+
+To register to an instance simply set the enviroment variable GOSSIP_INSTANCE for your container with the address of the instance you want to register to. NB: Do not define https:// or http:// for in your address otherwise on connection the instance will interpret the address as http://http://<your_address> which will not work. The instance will try to connect over HTTP and if that fails it will try over HTTPS.
+
+Let us start off by creating an instance named Kalahari that will act as our gossip instance, assuming you do not have one from the previous turtorials.
+
+```
+  docker run --name instance-kalahari -d -e INSTANCE_NAME=Kalahari -e SHARD_KEY=BasicPassword -p 7110:80  rbryanben/hifadhi:test
+```
+
+Once the instance is running, lets create another instance that runs on port 7510 with the same SHARD-KEY. If the shard key does not match, the instance will not be registered. 
+
+```
+  docker run --name instance-sahara -d -e INSTANCE_NAME=Sahara -e SHARD_KEY=BasicPassword -e GOSSIP_INSTANCE=127.0.01:7110 -p 7510:80  rbryanben/hifadhi:test
+```
+
   
 
   
