@@ -259,8 +259,44 @@ You should get a list of all registered instances if everything executed correct
 		"uptime": 798.4496290683746
 	}
 }
-
+```
 Congratulations if you received the above response. You have setup your very first distributed file server. Now go ahead an upload a file to any one of the instances and then try to stream the file from both instances.
+
+# Using Compose
+
+Lets now try to setup a 3 distributed instances using Docker Compose this time so that we can easily manage instances instead of doing everything randomly. Paste the following yml into your docker-compose.yml file and then run it.
+	
+```yml
+version: "3.9"
+services:
+  kalahari:
+    image: "rbryanben/hifadhi:test"
+    ports:
+      - 8000:80
+    environment:
+      - SHARD_KEY=BasicPassword
+      - INSTANCE_NAME=kalahari
+  namib:
+    image: "rbryanben/hifadhi:test"
+    ports:
+      - 8001:80
+    environment:
+      - SHARD_KEY=BasicPassword
+      - INSTANCE_NAME=namib
+      - GOSSIP_INSTANCE=kalahari
+    depends_on:
+      - kalahari
+  sahara:
+    image: "rbryanben/hifadhi:test"
+    ports:
+      - 8002:80
+    environment:
+      - SHARD_KEY=BasicPassword
+      - INSTANCE_NAME=sahara
+      - GOSSIP_INSTANCE=kalahari
+    depends_on:
+      - kalahari
+      
 ```
   
 
