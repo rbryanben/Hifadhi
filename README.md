@@ -267,7 +267,7 @@ Congratulations if you received the above response. You have setup your very fir
 Lets now try to setup a 3 distributed instances using Docker Compose this time so that we can easily manage instances instead of doing everything randomly. Paste the following yml into your docker-compose.yml file and then run it.
 	
 ```yml
-version: "3.9"
+version: "3.3"
 services:
   kalahari:
     image: "rbryanben/hifadhi:test"
@@ -298,9 +298,37 @@ services:
       - kalahari
       
 ```
-  
+	
+In my case I used the command below to build the compose file 
 
-  
+```
+docker-compose up -d --build
+```
+Go ahead and navigate to localhost ports 8000 8001 and 8002 to verify that the instances are running. 
+
+# Congratulations 
+	
+Congrats if you have reached this point, which is basically all there is to it. The last thing to do is to run a production version of Hifadhi instead of the test version we were using that uses a development server.
+
+# Production
+
+For production you should use the latest tag instead of the test tag. Go ahead and pull the latest version of Hifadhi from Docker Hub
+
+```
+docker pull rbryanben/hifadhi:latest
+```
+
+# Workers and Threads
+
+The production version of Hifadhi uses Gunicorn as its HTTP Server. Gunicorn needs defined, the number of worker procceesses it will have, and the number of threads. If running one instance only it is recommened to set the number of workers between 4-12, as stated by their <a href="https://docs.gunicorn.org/en/stable/design.html#:~:text=DO%20NOT%20scale%20the%20number,load%20balancing%20when%20handling%20requests.">documentation</a>. And then set the threads to four. 
+
+# Running Latest
+
+To run a production instance, you need WORKERS and THREADS set as enviroment variables. 
+```
+docker run --name instance-production -d -e INSTANCE_NAME=ProductionDemo -e SHARD_KEY=BasicPassword -e WORKERS=4 -e THREADS=4 -p 9000:80  rbryanben/hifadhi:latest
+```
+Go ahead and navigate to port 9000
   
   
 
